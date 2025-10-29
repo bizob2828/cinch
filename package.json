@@ -1,0 +1,26 @@
+{
+  "name": "cinch",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js public/",
+    "start:dev": "node --inspect-brk server.js",
+    "test": "c8 --reporter=lcov --output-dir=coverage node --test test/game-classes.test.js test/server-integration.test.js",
+    "test:unit": "node --test test/game-classes.test.js",
+    "test:integration": "node --test test/server-integration.test.js",
+    "test:watch": "node --test --watch test/"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "c8": "^10.1.2",
+    "sinon": "^18.0.1"
+  }
+}
