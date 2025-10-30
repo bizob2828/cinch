@@ -33,8 +33,13 @@ io.on('connection', socket => {
       return
     }
 
-    socket.emit('welcome', { team: player.team, name: player.name })
+    socket.emit('welcome', { team: player.team, name: player.name, position: player.seat })
     io.emit('message', `👋 ${player.name} joined (Team ${player.team}).`)
+
+    // Broadcast updated player list to all clients
+    io.emit('playerJoined', {
+      players: game.players.map(p => p ? { name: p.name, team: p.team, seat: p.seat } : null)
+    })
 
     if (game.players.length === 4) {
       startNewHand()
@@ -68,8 +73,10 @@ function startNewHand () {
     io.to(player.id).emit('yourHand', player.hand.toArray())
   }
 
-  io.emit('message', `Bidding starts with ${game.players[0].name}.`)
-  io.to(game.getCurrentPlayer().id).emit('yourTurn', {
+  const dealer = game.players[game.dealer]
+  const firstBidder = game.getCurrentPlayer()
+  io.emit('message', `${dealer.name} is dealing. Bidding starts with ${firstBidder.name}.`)
+  io.to(firstBidder.id).emit('yourTurn', {
     phase: 'bidding',
     validBids: Object.keys(BID_VALUES)
   })
@@ -95,6 +102,14 @@ function handleBid (socket, bid) {
   io.emit('message', `${player.name} bids ${bid}`)
 
   const result = game.processBid(player, bid)
+
+  // Broadcast current bid status
+  io.emit('bidUpdate', {
+    currentBid: game.currentBid,
+    highestBidder: game.highestBidder ? game.highestBidder.name : null,
+    bidContract: game.bidContract,
+    bidderTeam: game.highestBidder ? game.highestBidder.team : null
+  })
 
   if (result.finished) {
     if (result.cinchOverride) {
@@ -206,6 +221,15 @@ function handlePlay (socket, cardIndex) {
     card: { suit: cardToPlay.suit, rank: cardToPlay.rank }
   })
 
+  // Broadcast current trick state to all players
+  io.emit('trickUpdate', {
+    trickPlays: game.trickPlays.map(p => ({
+      player: p.seat,
+      card: { suit: p.card.suit, rank: p.card.rank },
+      name: p.name
+    }))
+  })
+
   io.to(player.id).emit('yourHand', player.hand.toArray())
 
   if (result.trickComplete) {
@@ -254,7 +278,16 @@ function performScoring () {
   const finalResult = game.applyScore(scoreResults)
 
   if (finalResult.success) {
-    io.emit('message', `✅ Team ${finalResult.biddingTeam} made the bid!`)
+    const pointsEarned = scoreResults.teamPoints[finalResult.biddingTeam]
+    const pointsAwarded = finalResult.pointsAwarded
+
+    if (game.bidContract === 11 && pointsEarned === 4) {
+      io.emit('message', `🎯 CINCH SUCCESS! Team ${finalResult.biddingTeam} got all 4 points and gets 11 points!`)
+    } else if (pointsEarned > 4) {
+      io.emit('message', `✅ Team ${finalResult.biddingTeam} made the bid! Earned ${pointsEarned} points, awarded ${pointsAwarded} (4 point maximum).`)
+    } else {
+      io.emit('message', `✅ Team ${finalResult.biddingTeam} made the bid and gets ${pointsAwarded} points!`)
+    }
   } else {
     io.emit('message', `❌ Team ${finalResult.biddingTeam} failed the bid and loses ${game.bidContract} points.`)
   }

@@ -206,8 +206,8 @@ describe('CinchGame Class', () => {
     const result = game.applyScore(scoreResults)
 
     assert.strictEqual(result.success, true)
-    assert.strictEqual(game.scores.team1, 3)
-    assert.strictEqual(game.scores.team2, 1)
+    assert.strictEqual(game.scores.team1, 3) // Gets their earned points
+    assert.strictEqual(game.scores.team2, 1) // Non-bidding team gets their points
   })
 
   test('should handle failed bid scoring', () => {
@@ -223,7 +223,40 @@ describe('CinchGame Class', () => {
 
     assert.strictEqual(result.success, false)
     assert.strictEqual(game.scores.team1, -3) // Lose bid amount
-    assert.strictEqual(game.scores.team2, 2) // Get their points
+    assert.strictEqual(game.scores.team2, 2) // Non-bidding team gets their points
+  })
+
+  test('should handle cinch bid with all 4 points (gets 11 points)', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.highestBidder = game.players[0] // Team 1
+    game.bidContract = 11 // Cinch bid
+
+    // Test cinch bid where team gets all 4 points
+    const scoreResults = { teamPoints: { 1: 4, 2: 0 } } // Team 1 got all 4 points
+    const result = game.applyScore(scoreResults)
+
+    assert.strictEqual(result.success, true)
+    assert.strictEqual(game.scores.team1, 11) // Gets 11 points for cinch with all 4
+    assert.strictEqual(game.scores.team2, 0) // Non-bidding team gets their points
+    assert.strictEqual(result.pointsAwarded, 11) // Verify return value
+  })
+
+  test('should handle failed cinch bid (less than 4 points)', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.highestBidder = game.players[0] // Team 1
+    game.bidContract = 11 // Cinch bid
+
+    // Test cinch bid where team gets only 3 points (fails cinch requirement)
+    const scoreResults = { teamPoints: { 1: 3, 2: 1 } } // Team 1 got 3 points
+    const result = game.applyScore(scoreResults)
+
+    assert.strictEqual(result.success, false) // Failed because cinch requires all 4 points
+    assert.strictEqual(game.scores.team1, -11) // Loses bid amount
+    assert.strictEqual(game.scores.team2, 1) // Non-bidding team gets their points
   })
 })
 
@@ -231,6 +264,9 @@ describe('Constants', () => {
   test('should have correct BID_VALUES', () => {
     assert.strictEqual(BID_VALUES.pass, 0)
     assert.strictEqual(BID_VALUES['1'], 1)
+    assert.strictEqual(BID_VALUES['2'], 2)
+    assert.strictEqual(BID_VALUES['3'], 3)
+    assert.strictEqual(BID_VALUES['4'], 4)
     assert.strictEqual(BID_VALUES.cinch, 11)
   })
 

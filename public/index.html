@@ -3,315 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <title>Cinch Multiplayer</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #114; color: #fff; text-align: center; }
-    #hand { margin-top: 15px; }
-    .card { 
-      display: inline-block; 
-      padding: 8px 12px; 
-      margin: 3px; 
-      background: #fff; 
-      color: #000; 
-      border-radius: 5px; 
-      cursor: pointer; 
-      border: 2px solid transparent;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    #played { margin-top: 15px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; }
-    #messages { background: #222; padding: 10px; height: 150px; overflow-y: auto; border-radius: 5px; }
-    #scoreboard { margin-top: 15px; background: #333; padding: 10px; border-radius: 5px; }
-    #bidding, #chooseTrump, #discarding, #nextHand { display: none; margin-top: 10px; }
-    #gameUI { display: none; }
-    .card.selected { 
-      background: #ff4444 !important; 
-      color: #fff !important; 
-      border: 3px solid #cc0000 !important; 
-      box-shadow: 0 0 10px #ff4444 !important;
-      transform: translateY(-5px) !important;
-      font-weight: bold !important;
-    }
-    .card.non-trump { 
-      background: #ffeb3b !important; 
-      color: #000 !important; 
-      border: 2px solid #fbc02d !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-    }
-    .card.non-trump:hover {
-      background: #fff176 !important;
-      transform: translateY(-2px) !important;
-      transition: all 0.2s ease !important;
-    }
-    .card.unselected-discard {
-      background: #fff !important;
-      color: #000 !important;
-      border: 2px solid #ccc !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-    }
-    .card.unselected-discard:hover {
-      background: #f5f5f5 !important;
-      transform: translateY(-2px) !important;
-      transition: all 0.2s ease !important;
-    }
-    .card.unplayable {
-      background: #ccc !important;
-      color: #666 !important;
-      border: 2px solid #999 !important;
-      opacity: 0.6 !important;
-      cursor: not-allowed !important;
-    }
-    .card.unplayable:hover {
-      background: #bbb !important;
-      transform: none !important;
-    }
-    .card.red-suit {
-      color: #cc0000 !important;
-    }
-    .card.red-suit.selected {
-      color: #fff !important; /* Keep white text when selected (red background) */
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>🃏 Cinch</h1>
-  <div id="joinForm">
+  <div id="joinForm" class="join-form">
+    <h1>🃏 Cinch</h1>
     <input type="text" id="playerNameInput" placeholder="Enter your name" />
     <button id="joinBtn">Join Game</button>
   </div>
-  <div id ="gameUI">
-    <div id="status"></div>
-    <div id="messages"></div>
 
-    <div id="scoreboard">Team 1: 0 | Team 2: 0</div>
-    <div id="trumpDisplay" style="display: none; background: #444; padding: 10px; border-radius: 5px; margin: 10px 0; font-size: 18px; font-weight: bold;">Trump Suit: <span id="trumpSuit"></span></div>
-    <div id="hand"></div>
-    <div id="played"><h3>Cards Played This Trick:</h3><div id="playedCards"></div></div>
+  <div id="gameUI" class="hidden">
+    <div class="table-container">
+      <!-- Game Status Area -->
+      <div class="game-status">
+        <div class="status-panel player-status">
+          <div id="status">Waiting for players...</div>
+        </div>
+        
+        <div class="status-panel scoreboard">
+          <div id="scoreboard">Team 1: 0 | Team 2: 0</div>
+        </div>
+        
+        <div class="status-panel trump-display" id="trumpDisplay">
+          <div>Trump:</div>
+          <div class="trump-suit" id="trumpSuit"></div>
+        </div>
+        
+        <div class="status-panel bid-display" id="bidDisplay">
+          <div>Bid:</div>
+          <div class="current-bid" id="currentBid">-</div>
+        </div>
+      </div>
 
-    <div id="bidding"></div>
-    <div id="chooseTrump"></div>
-    <div id="discarding"></div>
-    <button id="nextHand">Next Hand</button>
+      <!-- Game Table -->
+      <div class="game-table">
+        <!-- Player Positions -->
+        <div class="player-area player-north" id="playerNorth">
+          <div class="player-name"></div>
+        </div>
+        
+        <div class="player-area player-east" id="playerEast">
+          <div class="player-name"></div>
+        </div>
+        
+        <div class="player-area player-south" id="playerSouth">
+          <div class="player-name"></div>
+        </div>
+        
+        <div class="player-area player-west" id="playerWest">
+          <div class="player-name"></div>
+        </div>
+
+        <!-- Center area for played cards -->
+        <div class="table-center" id="playedCards"></div>
+      </div>
+
+      <!-- Player's Hand -->
+      <div class="player-hand" id="hand"></div>
+    </div>
+
+    <!-- Action Modals -->
+    <div id="bidding" class="action-area hidden">
+      <h3>Your turn to bid!</h3>
+      <div class="action-buttons">
+        <button class="action-button bid-button" onclick="bid('pass')">Pass</button>
+        <button class="action-button bid-button" onclick="bid('1')">1</button>
+        <button class="action-button bid-button" onclick="bid('2')">2</button>
+        <button class="action-button bid-button" onclick="bid('3')">3</button>
+        <button class="action-button bid-button" onclick="bid('4')">4</button>
+        <button class="action-button bid-button cinch" onclick="bid('cinch')">Cinch</button>
+      </div>
+    </div>
+
+    <div id="chooseTrump" class="action-area hidden">
+      <h3>You won the bid!</h3>
+      <p>Choose trump suit:</p>
+      <div class="action-buttons">
+        <button class="action-button trump-button" onclick="chooseTrump('♠')">♠</button>
+        <button class="action-button trump-button red-suit" onclick="chooseTrump('♥')">♥</button>
+        <button class="action-button trump-button red-suit" onclick="chooseTrump('♦')">♦</button>
+        <button class="action-button trump-button" onclick="chooseTrump('♣')">♣</button>
+      </div>
+    </div>
+
+    <div id="discarding" class="action-area hidden">
+      <h3>Discard Phase</h3>
+      <p>Select cards to discard (you must discard down to 6 cards)</p>
+      <div class="action-buttons">
+        <button class="action-button bid-button" onclick="finishDiscarding()">Done Discarding</button>
+      </div>
+    </div>
+
+    <!-- Next Hand Button -->
+    <button class="next-hand-btn" id="nextHand" onclick="nextHand()">Start Next Hand</button>
+
+    <!-- Audit Log -->
+    <div class="audit-log" id="auditLog">
+      <div class="audit-header" onclick="toggleAudit()">
+        <span>Game Log</span>
+        <span class="audit-toggle" id="auditToggle">▼</span>
+      </div>
+      <div class="audit-content" id="auditContent"></div>
+    </div>
+
+    <!-- Hand Result Modal -->
+    <div class="hand-result-modal hidden" id="handResultModal">
+      <div class="modal-content">
+        <h2 id="handResultTitle">Hand Complete!</h2>
+        <div class="score-display">
+          <div class="team-score team1">
+            <span class="team-label">Team 1</span>
+            <span class="score" id="team1Score">0</span>
+          </div>
+          <div class="vs">VS</div>
+          <div class="team-score team2">
+            <span class="team-label">Team 2</span>
+            <span class="score" id="team2Score">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    debugger
-    const socket = io();
-    const joinForm = document.getElementById("joinForm");
-    const joinBtn = document.getElementById("joinBtn");
-    const playerNameInput = document.getElementById("playerNameInput");
-    const gameUI = document.getElementById("gameUI");
-
-    function joinGame() {
-      const name = playerNameInput.value.trim() || "Anonymous";
-      socket.emit("registerName", name);
-
-      // Hide join form and show game UI
-      joinForm.style.display = "none";
-      gameUI.style.display = "block";
-    }
-
-    joinBtn.onclick = joinGame;
-
-    // Allow Enter key to submit the form
-    playerNameInput.addEventListener('keypress', (event) => {
-      if (event.key === 'Enter') {
-        joinGame();
-      }
-    });
-
-    const messages = document.getElementById('messages');
-    const handDiv = document.getElementById('hand');
-    const playedDiv = document.getElementById('playedCards');
-    const biddingDiv = document.getElementById('bidding');
-    const chooseTrumpDiv = document.getElementById('chooseTrump');
-    const discardingDiv = document.getElementById('discarding');
-    const scoreDiv = document.getElementById('scoreboard');
-    const trumpDisplay = document.getElementById('trumpDisplay');
-    const trumpSuitSpan = document.getElementById('trumpSuit');
-    const nextHandBtn = document.getElementById('nextHand');
-
-    socket.on('welcome', ({ team, name }) => {
-      document.getElementById('status').innerText = `${name} (Team ${team})`;
-    });
-
-    socket.on('message', msg => {
-      messages.innerHTML += `<div>${msg}</div>`;
-      messages.scrollTop = messages.scrollHeight;
-    });
-
-    socket.on('yourHand', cards => {
-      handDiv.innerHTML = cards.map((c,i)=>{
-        const isRedSuit = c.suit === '♥' || c.suit === '♦';
-        const redSuitClass = isRedSuit ? ' red-suit' : '';
-        return `<div class='card${redSuitClass}' data-i='${i}'>${c.rank} of ${c.suit}</div>`;
-      }).join('');
-      handDiv.querySelectorAll(".card").forEach(cardDiv=>{
-        cardDiv.onclick = null; // Clear previous onclicks
-      });
-    });
-
-    socket.on('yourTurn', data => {
-      console.log('your turn', data)
-      biddingDiv.style.display = chooseTrumpDiv.style.display = discardingDiv.style.display = nextHandBtn.style.display = "none";
-      if(data.phase === "bidding"){
-        if(data.cinchOverride) {
-          biddingDiv.innerHTML = `
-            <h3 style="color: #ff4444;">⚡ CINCH OVERRIDE OPPORTUNITY ⚡</h3>
-            <p style="color: #ffeb3b;">The opposing team bid cinch. You can override by bidding cinch yourself!</p>
-            <div style="margin: 10px 0;">
-              ${data.validBids.map(b => `<button style="padding: 10px 20px; margin: 5px; font-size: 16px; ${b === 'cinch' ? 'background: #ff4444; color: white;' : ''}">${b}</button>`).join('')}
-            </div>
-          `;
-        } else {
-          biddingDiv.innerHTML = "Your Bid: " + data.validBids.map(b=>`<button>${b}</button>`).join('');
-        }
-        biddingDiv.style.display = "block";
-        biddingDiv.querySelectorAll("button").forEach(btn=>{
-          btn.onclick = ()=>{ socket.emit("bid", btn.innerText); biddingDiv.style.display="none"; };
-        });
-      } else if(data.phase === "play"){
-        messages.innerHTML += `<div>Your turn to play.</div>`;
-        handDiv.querySelectorAll(".card").forEach(cardDiv=>{
-          cardDiv.onclick = ()=>{
-            const index = cardDiv.getAttribute("data-i");
-            socket.emit("playCard", parseInt(index));
-            // Don't disable clicks here - wait for server confirmation
-          };
-        });
-      }
-    });
-
-    socket.on('chooseTrump', suits => {
-      console.log('choose trump', suits)
-      chooseTrumpDiv.innerHTML = "Choose Trump: " + suits.map(s=>{
-        const isRedSuit = s === '♥' || s === '♦';
-        const color = isRedSuit ? '#cc0000' : '#000';
-        return `<button style="color: ${color};">${s}</button>`;
-      }).join('');
-      chooseTrumpDiv.style.display = "block";
-      chooseTrumpDiv.querySelectorAll("button").forEach(btn=>{
-        btn.onclick = ()=>{ socket.emit("chooseTrump", btn.innerText); chooseTrumpDiv.style.display="none"; };
-      });
-    });
-
-    let selectedCards = [];
-    let currentTrumpSuit = null;
-    
-    function updateSelectionCounter() {
-      const counter = document.getElementById('selectionCounter');
-      if (counter) {
-        const count = selectedCards.length;
-        counter.innerHTML = `${count} card${count !== 1 ? 's' : ''} selected for discard`;
-        counter.style.color = count > 0 ? '#ff4444' : '#4CAF50';
-      }
-    }
-    
-    socket.on('discardPhase', data => {
-      console.log('discard phase', data)
-      selectedCards = [...data.nonTrumpIndices]; // Start with all non-trump cards selected
-      discardingDiv.style.display = "block";
-      discardingDiv.innerHTML = `
-        <h3>🗑️ Discard Phase - Trump: ${data.trumpSuit}</h3>
-        <p style="margin: 10px 0; color: #ff4444;">RED cards will be discarded. Click RED cards to keep them (turns WHITE)</p>
-        <p style="margin: 5px 0; color: #fff; font-size: 12px;">All non-trump cards are selected for discard by default</p>
-        <div id="selectionCounter" style="margin: 10px 0; font-size: 18px; font-weight: bold; color: #4CAF50;">0 cards selected for discard</div>
-        <button id="discardBtn" style="padding: 10px 20px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Discard Selected Cards</button>
-      `;
-      
-      // Set up non-trump cards (start selected by default)
-      handDiv.querySelectorAll(".card").forEach((cardDiv, index) => {
-        cardDiv.classList.remove('selected', 'non-trump', 'unselected-discard');
-        cardDiv.onclick = null;
-        
-        if(data.nonTrumpIndices.includes(index)) {
-          // Non-trump cards start selected (red)
-          cardDiv.classList.add('selected');
-          cardDiv.onclick = () => {
-            if(selectedCards.includes(index)) {
-              // Unselect: remove from selectedCards and change to white
-              selectedCards = selectedCards.filter(i => i !== index);
-              cardDiv.classList.remove('selected');
-              cardDiv.classList.add('unselected-discard');
-            } else {
-              // Select: add to selectedCards and change to red
-              selectedCards.push(index);
-              cardDiv.classList.remove('unselected-discard');
-              cardDiv.classList.add('selected');
-            }
-            updateSelectionCounter();
-          };
-        }
-      });
-      
-      updateSelectionCounter(); // Initialize counter
-      
-      document.getElementById('discardBtn').onclick = () => {
-        // Remove discarded cards from UI immediately
-        const sortedIndices = selectedCards.sort((a, b) => b - a); // Sort descending to avoid index shifting
-        sortedIndices.forEach(index => {
-          const cardDiv = handDiv.children[index];
-          if (cardDiv) {
-            cardDiv.remove();
-          }
-        });
-        
-        // Update data-i attributes for remaining cards
-        handDiv.querySelectorAll(".card").forEach((cardDiv, newIndex) => {
-          cardDiv.setAttribute('data-i', newIndex);
-        });
-        
-        socket.emit("discardCards", selectedCards);
-        discardingDiv.style.display = "none";
-        selectedCards = [];
-        
-        // Remove click handlers and highlighting from remaining cards
-        handDiv.querySelectorAll(".card").forEach(cardDiv => {
-          cardDiv.onclick = null;
-          cardDiv.classList.remove('selected', 'non-trump', 'unselected-discard');
-        });
-      };
-    });
-
-    socket.on('cardPlayed', ({ player, name, card }) => {
-      const isRedSuit = card.suit === '♥' || card.suit === '♦';
-      const suitColor = isRedSuit ? '#cc0000' : '#fff';
-      playedDiv.innerHTML += `<div><strong>${name}:</strong> ${card.rank} of <span style="color: ${suitColor};">${card.suit}</span></div>`;
-      
-      // Disable click handlers for all players since a card was successfully played
-      handDiv.querySelectorAll(".card").forEach(cd => cd.onclick = null);
-    });
-
-    socket.on('scoreUpdate', scores => {
-      scoreDiv.innerText = `Team 1: ${scores.team1} | Team 2: ${scores.team2}`;
-      nextHandBtn.style.display = "block";
-    });
-
-    socket.on('trumpSelected', suit => {
-      currentTrumpSuit = suit;
-      trumpSuitSpan.innerText = suit;
-      // Color the trump suit display red for hearts and diamonds
-      if(suit === '♥' || suit === '♦') {
-        trumpSuitSpan.style.color = '#cc0000';
-      } else {
-        trumpSuitSpan.style.color = '#fff';
-      }
-      trumpDisplay.style.display = "block";
-    });
-
-    socket.on('trumpCleared', () => {
-      currentTrumpSuit = null;
-      trumpDisplay.style.display = "none";
-      trumpSuitSpan.innerText = "";
-    });
-
-    nextHandBtn.onclick = () => {
-      playedDiv.innerHTML = "";
-      trumpDisplay.style.display = "none";
-      socket.emit("nextHand");
-      nextHandBtn.style.display = "none";
-    };
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
-
