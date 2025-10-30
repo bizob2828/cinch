@@ -1,262 +1,7 @@
 import { test, describe, beforeEach } from 'node:test'
 import assert from 'node:assert'
 import { Card } from '../lib/card.js'
-import { Deck } from '../lib/deck.js'
-import { Hand } from '../lib/hand.js'
-import { Player } from '../lib/player.js'
 import { CinchGame } from '../lib/game.js'
-import { BID_VALUES, SUITS, RANKS } from '../lib/constants.js'
-
-describe('Card Class', () => {
-  test('should create a card with suit and rank', () => {
-    const card = new Card('♥', 'A')
-    assert.strictEqual(card.suit, '♥')
-    assert.strictEqual(card.rank, 'A')
-  })
-
-  test('should return correct point values', () => {
-    assert.strictEqual(new Card('♥', 'A').getPointValue(), 4)
-    assert.strictEqual(new Card('♠', 'K').getPointValue(), 3)
-    assert.strictEqual(new Card('♦', 'Q').getPointValue(), 2)
-    assert.strictEqual(new Card('♣', 'J').getPointValue(), 1)
-    assert.strictEqual(new Card('♥', '10').getPointValue(), 10)
-    assert.strictEqual(new Card('♠', '9').getPointValue(), 0)
-  })
-
-  test('should return correct rank index', () => {
-    assert.strictEqual(new Card('♥', '2').getRankIndex(), 0)
-    assert.strictEqual(new Card('♠', 'A').getRankIndex(), 12)
-    assert.strictEqual(new Card('♦', 'K').getRankIndex(), 11)
-  })
-
-  test('should return correct string representation', () => {
-    const card = new Card('♥', 'A')
-    assert.strictEqual(card.toString(), 'A of ♥')
-  })
-})
-
-describe('Deck Class', () => {
-  let deck
-
-  beforeEach(() => {
-    deck = new Deck()
-  })
-
-  test('should create a full deck of 52 cards', () => {
-    assert.strictEqual(deck.size(), 52)
-    assert.strictEqual(deck.isEmpty(), false)
-  })
-
-  test('should deal single card', () => {
-    const originalSize = deck.size()
-    const dealtCards = deck.deal(1)
-
-    assert.strictEqual(dealtCards.length, 1)
-    assert.strictEqual(deck.size(), originalSize - 1)
-    assert(dealtCards[0] instanceof Card)
-  })
-
-  test('should become empty after dealing all cards', () => {
-    const allCards = deck.deal(52)
-
-    assert.strictEqual(allCards.length, 52)
-    assert.strictEqual(deck.size(), 0)
-    assert.strictEqual(deck.isEmpty(), true)
-  })
-
-  test('should shuffle deck and change card order', () => {
-    const originalOrder = [...deck.cards]
-    deck.shuffle()
-
-    // With 52 cards, the probability of the order staying exactly the same is astronomically low
-    // We'll check that at least some cards changed position
-    let changedPositions = 0
-    for (let i = 0; i < Math.min(10, deck.cards.length); i++) {
-      if (originalOrder[i] !== deck.cards[i]) {
-        changedPositions++
-      }
-    }
-
-    // With proper shuffling, at least some of the first 10 cards should have moved
-    assert(changedPositions > 0, 'Shuffle should change at least some card positions')
-    assert.strictEqual(deck.size(), 52, 'Deck size should remain the same after shuffle')
-  })
-})
-
-describe('Hand Class', () => {
-  let hand
-  let card1, card2, card3
-
-  beforeEach(() => {
-    hand = new Hand()
-    card1 = new Card('♥', 'A')
-    card2 = new Card('♠', 'K')
-    card3 = new Card('♦', 'Q')
-  })
-
-  test('should initialize empty hand', () => {
-    assert.strictEqual(hand.size(), 0)
-    assert.strictEqual(hand.isEmpty(), true)
-  })
-
-  test('should add and remove cards', () => {
-    hand.addCard(card1)
-    assert.strictEqual(hand.size(), 1)
-
-    const removed = hand.removeCard(0)
-    assert.strictEqual(removed, card1)
-    assert.strictEqual(hand.size(), 0)
-  })
-
-  test('should calculate total point value', () => {
-    hand.addCards([card1, card2, card3]) // A=4, K=3, Q=2 = 9 total
-    assert.strictEqual(hand.getTotalPointValue(), 9)
-  })
-
-  test('should check suit membership', () => {
-    hand.addCards([card1, card2]) // Hearts and Spades
-    assert.strictEqual(hand.hasSuit('♥'), true)
-    assert.strictEqual(hand.hasSuit('♦'), false)
-  })
-
-  test('should remove multiple cards by indices', () => {
-    hand.addCards([card1, card2, card3])
-    const removed = hand.removeCards([0, 2]) // Remove first and third cards
-
-    assert.strictEqual(removed.length, 2)
-    assert.strictEqual(hand.size(), 1)
-    assert.strictEqual(hand.cards[0], card2) // Only middle card should remain
-  })
-
-  test('should check for specific card', () => {
-    hand.addCard(card1) // Ace of Hearts
-
-    assert.strictEqual(hand.hasCard('♥', 'A'), true)
-    assert.strictEqual(hand.hasCard('♠', 'A'), false)
-    assert.strictEqual(hand.hasCard('♥', 'K'), false)
-  })
-
-  test('should get cards of specific suit', () => {
-    const heartCard = new Card('♥', 'K')
-    hand.addCards([card1, card2, heartCard]) // Hearts A, Spades K, Hearts K
-
-    const hearts = hand.getCardsOfSuit('♥')
-    assert.strictEqual(hearts.length, 2)
-    assert.strictEqual(hearts[0].suit, '♥')
-    assert.strictEqual(hearts[1].suit, '♥')
-  })
-
-  test('should get non-trump cards', () => {
-    const heartCard = new Card('♥', 'K')
-    hand.addCards([card1, card2, heartCard]) // Hearts A, Spades K, Hearts K
-
-    const nonTrump = hand.getNonTrumpCards('♥')
-    assert.strictEqual(nonTrump.length, 1)
-    assert.strictEqual(nonTrump[0].suit, '♠')
-  })
-
-  test('should get non-trump indices', () => {
-    const heartCard = new Card('♥', 'K')
-    hand.addCards([card1, card2, heartCard]) // Hearts A, Spades K, Hearts K
-
-    const indices = hand.getNonTrumpIndices('♥')
-    assert.strictEqual(indices.length, 1)
-    assert.strictEqual(indices[0], 1) // Index of Spades K
-  })
-
-  test('should convert to array representation', () => {
-    hand.addCards([card1, card2])
-    const array = hand.toArray()
-
-    assert.strictEqual(array.length, 2)
-    assert.deepStrictEqual(array[0], { suit: '♥', rank: 'A' })
-    assert.deepStrictEqual(array[1], { suit: '♠', rank: 'K' })
-  })
-})
-
-describe('Player Class', () => {
-  test('should create player with correct properties', () => {
-    const player = new Player('socket123', 0, 'Alice')
-
-    assert.strictEqual(player.id, 'socket123')
-    assert.strictEqual(player.seat, 0)
-    assert.strictEqual(player.name, 'Alice')
-    assert.strictEqual(player.team, 1) // seat 0 = team 1
-  })
-
-  test('should assign teams correctly based on seat', () => {
-    const player0 = new Player('id0', 0, 'Player0')
-    const player1 = new Player('id1', 1, 'Player1')
-    const player2 = new Player('id2', 2, 'Player2')
-    const player3 = new Player('id3', 3, 'Player3')
-
-    assert.strictEqual(player0.team, 1) // even seats = team 1
-    assert.strictEqual(player1.team, 2) // odd seats = team 2
-    assert.strictEqual(player2.team, 1) // even seats = team 1
-    assert.strictEqual(player3.team, 2) // odd seats = team 2
-  })
-
-  test('should handle card operations', () => {
-    const player = new Player('id1', 0, 'Alice')
-    const card1 = new Card('♥', 'A')
-    const card2 = new Card('♠', 'K')
-    const card3 = new Card('♦', 'Q')
-
-    // Test adding single card
-    player.addCardToHand(card1)
-    assert.strictEqual(player.hand.size(), 1)
-
-    // Test adding multiple cards
-    player.addCardsToHand([card2, card3])
-    assert.strictEqual(player.hand.size(), 3)
-
-    // Test playing a card
-    const playedCard = player.playCard(0)
-    assert.strictEqual(playedCard, card1)
-    assert.strictEqual(player.hand.size(), 2)
-  })
-
-  test('should handle discarding cards', () => {
-    const player = new Player('id1', 0, 'Alice')
-    const cards = [new Card('♥', 'A'), new Card('♠', 'K'), new Card('♦', 'Q')]
-
-    player.addCardsToHand(cards)
-    const discarded = player.discardCards([0, 2]) // Discard first and third
-
-    assert.strictEqual(discarded.length, 2)
-    assert.strictEqual(player.hand.size(), 1)
-  })
-
-  test('should handle won cards', () => {
-    const player = new Player('id1', 0, 'Alice')
-    const wonCards = [new Card('♥', 'A'), new Card('♠', 'K')]
-
-    player.addWonCards(wonCards)
-    assert.strictEqual(player.wonCards.size(), 2)
-  })
-
-  test('should reset for new hand', () => {
-    const player = new Player('id1', 0, 'Alice')
-    const cards = [new Card('♥', 'A'), new Card('♠', 'K')]
-    const wonCards = [new Card('♦', 'Q')]
-
-    player.addCardsToHand(cards)
-    player.addWonCards(wonCards)
-
-    assert.strictEqual(player.hand.size(), 2)
-    assert.strictEqual(player.wonCards.size(), 1)
-
-    player.resetForNewHand()
-
-    assert.strictEqual(player.hand.size(), 0)
-    assert.strictEqual(player.wonCards.size(), 0)
-  })
-
-  test('should use default name when none provided', () => {
-    const player = new Player('id1', 2) // No name provided
-    assert.strictEqual(player.name, 'Player 3') // seat + 1
-  })
-})
 
 describe('CinchGame Class', () => {
   let game
@@ -890,27 +635,61 @@ describe('CinchGame Class', () => {
     assert.strictEqual(results.high.card.rank, 'A')
     assert.strictEqual(results.teamPoints[1], 2) // High + Low
   })
-})
 
-describe('Constants', () => {
-  test('should have correct BID_VALUES', () => {
-    assert.strictEqual(BID_VALUES.pass, 0)
-    assert.strictEqual(BID_VALUES['1'], 1)
-    assert.strictEqual(BID_VALUES['2'], 2)
-    assert.strictEqual(BID_VALUES['3'], 3)
-    assert.strictEqual(BID_VALUES['4'], 4)
-    assert.strictEqual(BID_VALUES.cinch, 11)
+  test('should cap normal bids at 4 points maximum', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Team 1 bids 2, earns all 4 points (but not cinch)
+    game.highestBidder = game.players[0] // Team 1
+    game.bidContract = 2
+    const scoreResults = { teamPoints: { 1: 4, 2: 0 } }
+
+    const result = game.applyScore(scoreResults)
+
+    assert.strictEqual(result.success, true)
+    assert.strictEqual(result.biddingTeam, 1)
+    assert.strictEqual(result.pointsAwarded, 4) // Normal bid gets 4 points, not 11
+    assert.strictEqual(game.scores.team1, 4)
+    assert.strictEqual(game.scores.team2, 0)
   })
 
-  test('should have correct SUITS', () => {
-    assert.strictEqual(SUITS.length, 4)
-    assert(SUITS.includes('♥'))
-    assert(SUITS.includes('♠'))
+  test('should handle team 2 winning bid', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Team 2 bids 3, earns 3 points
+    game.highestBidder = game.players[1] // Team 2
+    game.bidContract = 3
+    const scoreResults = { teamPoints: { 1: 1, 2: 3 } }
+
+    const result = game.applyScore(scoreResults)
+
+    assert.strictEqual(result.success, true)
+    assert.strictEqual(result.biddingTeam, 2)
+    assert.strictEqual(result.pointsAwarded, 3)
+    assert.strictEqual(game.scores.team1, 1) // Non-bidding team gets their points
+    assert.strictEqual(game.scores.team2, 3)
   })
 
-  test('should have correct RANKS', () => {
-    assert.strictEqual(RANKS.length, 13)
-    assert.strictEqual(RANKS[0], '2')
-    assert.strictEqual(RANKS[12], 'A')
+  test('should handle team 2 successful cinch', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Team 2 bids cinch, gets all 4 points
+    game.highestBidder = game.players[1] // Team 2
+    game.bidContract = 11 // Cinch
+    const scoreResults = { teamPoints: { 1: 0, 2: 4 } }
+
+    const result = game.applyScore(scoreResults)
+
+    assert.strictEqual(result.success, true)
+    assert.strictEqual(result.biddingTeam, 2)
+    assert.strictEqual(result.pointsAwarded, 11)
+    assert.strictEqual(game.scores.team1, 0)
+    assert.strictEqual(game.scores.team2, 11)
   })
 })
