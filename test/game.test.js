@@ -889,4 +889,162 @@ describe('CinchGame Class', () => {
     assert.strictEqual(game.phase, 'waiting')
     assert.strictEqual(game.trumpSuit, null)
   })
+
+  test('should prevent cinch counter-bid from player who already bid', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    const player0 = game.players[0] // Team 1
+    const player1 = game.players[1] // Team 2
+
+    // Player 1 makes a normal bid first
+    game.processBid(player1, '2')
+    assert.ok(game.playersBid.has(player1.seat))
+
+    // Player 0 bids cinch, triggering override phase
+    let result = game.processBid(player0, 'cinch')
+    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(game.cinchOverridePhase, true)
+
+    // Player 1 (who already bid) tries to counter cinch - should be rejected
+    result = game.processBid(player1, 'cinch')
+    assert.strictEqual(result.finished, false)
+    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(result.error, 'Player has already bid this hand')
+
+    // The original cinch bidder should remain unchanged
+    assert.strictEqual(game.cinchBidder, player0)
+    assert.strictEqual(game.highestBidder, player0)
+  })
+
+  test('should handle cinch with no eligible opposing players', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    const player0 = game.players[0] // Team 1
+    const player1 = game.players[1] // Team 2
+    const player3 = game.players[3] // Team 2
+
+    // Both opposing team members bid first
+    game.processBid(player1, '2')
+    game.processBid(player3, 'pass') // Pass still counts as having bid
+
+    // Verify both opposing players have bid
+    assert.ok(game.playersBid.has(player1.seat))
+    assert.ok(game.playersBid.has(player3.seat))
+
+    // Player 0 bids cinch - should not trigger override since no eligible opposing players
+    const result = game.processBid(player0, 'cinch')
+
+    assert.strictEqual(result.finished, true)
+    assert.strictEqual(result.cinchOverride, undefined) // No override offered
+    assert.strictEqual(game.phase, 'chooseTrump')
+    assert.strictEqual(game.cinchOverridePhase, false)
+    assert.strictEqual(game.cinchBidder, player0)
+    assert.strictEqual(game.highestBidder, player0)
+  })
+
+  test('should handle findNextEligibleOpposingTeamMember with no eligible players', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    const player0 = game.players[0] // Team 1
+    const player1 = game.players[1] // Team 2
+    const player3 = game.players[3] // Team 2
+
+    // Mark all opposing team members as having bid
+    game.playersBid.add(player1.seat)
+    game.playersBid.add(player3.seat)
+
+    // Set up cinch override phase
+    game.cinchOverridePhase = true
+    game.cinchBidder = player0
+    game.currentPlayer = 1
+
+    // Call findNextEligibleOpposingTeamMember when no players are eligible
+    // This should return early without changing currentPlayer
+    const originalCurrentPlayer = game.currentPlayer
+    game.findNextEligibleOpposingTeamMember()
+
+    // Should return early and not change current player
+    assert.strictEqual(game.currentPlayer, originalCurrentPlayer)
+  })
+
+  test('should handle tie game completion when both teams reach 21', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Set both teams to exactly 21 points
+    game.scores.team1 = 21
+    game.scores.team2 = 21
+
+    // Both teams at 21 with equal scores should return null (tie)
+    const winner = game.getWinningTeam()
+    assert.strictEqual(winner, null)
+
+    // Set team1 higher
+    game.scores.team1 = 22
+    game.scores.team2 = 21
+    const winner1 = game.getWinningTeam()
+    assert.strictEqual(winner1, 1)
+
+    // Set team2 higher
+    game.scores.team1 = 21
+    game.scores.team2 = 22
+    const winner2 = game.getWinningTeam()
+    assert.strictEqual(winner2, 2)
+  })
+
+  test('should handle hand scoring with no trump cards played', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Set trump suit to spades
+    game.trumpSuit = '♠'
+
+    // Add only non-trump cards to players' won cards
+    // This tests the conditional at line 359 where trumpCards.length === 0
+    game.players[0].addWonCards([new Card('♥', 'A')]) // High non-trump
+    game.players[1].addWonCards([new Card('♦', 'K')]) // Another non-trump
+    game.players[2].addWonCards([new Card('♣', '10')]) // Game value card
+    game.players[3].addWonCards([new Card('♥', '5')]) // Low value card
+
+    const results = game.calculateScore()
+
+    // Should have no high trump since no trump cards were played
+    assert.strictEqual(results.high, null)
+    assert.strictEqual(results.low, null) // Also no low trump
+    assert.strictEqual(results.jack, null) // Also no jack of trump
+
+    // But should still calculate game points from non-trump cards
+    assert.ok(results.game) // Game point should still be awarded
+    assert.ok(results.teamPoints[1] > 0 || results.teamPoints[2] > 0) // Someone gets points
+  })
+
+  test('should correctly compare trump card ranks in high trump calculation', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Set trump suit
+    game.trumpSuit = '♠'
+
+    // Add multiple trump cards to test the comparison logic in reduce function
+    // This should test the exact branch condition at line 359
+    game.players[0].addWonCards([new Card('♠', '10')]) // Lower trump
+    game.players[1].addWonCards([new Card('♠', 'A')]) // Higher trump - should win
+    game.players[2].addWonCards([new Card('♠', '5')]) // Even lower trump
+
+    const results = game.calculateScore()
+
+    // The Ace of Spades should be the high trump
+    assert.strictEqual(results.high.card.rank, 'A')
+    assert.strictEqual(results.high.card.suit, '♠')
+    assert.strictEqual(results.high.team, 2) // Player 1 is on team 2
+  })
 })
