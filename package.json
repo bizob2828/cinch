@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js public/",
-    "start:dev": "node --inspect-brk server.js",
+    "lint": "standard",
+    "lint:fix": "standard --fix",
+    "start:debug": "node --inspect-brk server.js",
     "test": "c8 --reporter=lcov --output-dir=coverage node --test test/game-classes.test.js test/server-integration.test.js",
     "test:unit": "node --test test/game-classes.test.js",
     "test:integration": "node --test test/server-integration.test.js",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "c8": "^10.1.2",
-    "sinon": "^18.0.1"
+    "sinon": "^18.0.1",
+    "standard": "^17.1.2"
   }
 }
