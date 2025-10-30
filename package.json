@@ -11,8 +11,7 @@
     "lint:fix": "standard --fix",
     "start:debug": "node --inspect-brk server.js",
     "test": "c8 --reporter=lcov --output-dir=coverage node --test 'test/*.test.js'",
-    "test:watch": "node --test --watch test/",
-    "prepare": "husky"
+    "test:watch": "node --test --watch test/"
   },
   "author": "",
   "license": "ISC",
