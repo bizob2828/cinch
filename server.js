@@ -7,7 +7,12 @@ import { SUITS, BID_VALUES } from './lib/constants.js'
 
 const app = express()
 const server = http.createServer(app)
-const io = new Server(server)
+const io = new Server(server, {
+  cors: {
+    origin: 'https://cinch-57zi.onrender.com',
+    methods: ['GET', 'POST']
+  }
+})
 app.use(express.static('public'))
 
 const PORT = process.env.PORT || 3000
