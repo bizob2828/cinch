@@ -692,4 +692,201 @@ describe('CinchGame Class', () => {
     assert.strictEqual(game.scores.team1, 0)
     assert.strictEqual(game.scores.team2, 11)
   })
+
+  test('should prevent cinch counter-bid from players who already bid', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.startNewHand()
+
+    // Player 0 (team 1) bids 2
+    game.processBid(game.players[0], '2')
+
+    // Player 1 (team 2) bids 3
+    game.processBid(game.players[1], '3')
+
+    // Player 2 (team 1) bids cinch - should trigger override phase
+    let result = game.processBid(game.players[2], 'cinch')
+    assert.strictEqual(result.finished, false)
+    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(result.cinchOffered, true)
+
+    // Player 3 (team 2) hasn't bid yet, so should be able to counter cinch
+    result = game.processBid(game.players[3], 'cinch')
+    assert.strictEqual(result.finished, true)
+    assert.strictEqual(result.overrideSuccessful, true)
+
+    // Reset and test the restriction
+    game.reset()
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.startNewHand()
+
+    // Player 0 (team 1) bids 2
+    game.processBid(game.players[0], '2')
+
+    // Player 1 (team 2) bids cinch - should trigger override phase
+    result = game.processBid(game.players[1], 'cinch')
+    assert.strictEqual(result.finished, false)
+    assert.strictEqual(result.cinchOverride, true)
+
+    // Manually test what happens if player 0 (who already bid) tries to counter
+    // This simulates the restriction - we need to manually check the playersBid set
+    assert.strictEqual(game.playersBid.has(game.players[0].seat), true)
+
+    // Only player 2 and 3 from team 1 should be eligible to counter
+    const eligiblePlayers = game.getEligibleOpposingPlayers()
+    assert.strictEqual(eligiblePlayers.length, 1) // Only player 2 from team 1
+    assert.strictEqual(eligiblePlayers[0].seat, 2)
+  })
+
+  test('should clear cinch override state between hands', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.startNewHand()
+
+    // Player 0 bids cinch, triggering override phase
+    let result = game.processBid(game.players[0], 'cinch')
+    assert.strictEqual(result.finished, false)
+    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(game.cinchOverridePhase, true)
+    assert.strictEqual(game.overrideAttempts, 0)
+
+    // Player 1 passes (no counter)
+    result = game.processBid(game.players[1], 'pass')
+
+    // Verify override state is cleared when finished
+    if (result.finished) {
+      assert.strictEqual(game.cinchOverridePhase, false)
+      assert.strictEqual(game.overrideAttempts, 0)
+    }
+
+    // Start a new hand - override state should definitely be cleared
+    game.startNewHand()
+    assert.strictEqual(game.cinchOverridePhase, false)
+    assert.strictEqual(game.overrideAttempts, 0)
+    assert.strictEqual(game.playersBid.size, 0)
+  })
+
+  test('should detect game completion when team reaches 21 points', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Initially game should not be complete
+    assert.strictEqual(game.isGameComplete(), false)
+    assert.strictEqual(game.getWinningTeam(), null)
+
+    // Set team 1 to 20 points - still not complete
+    game.scores.team1 = 20
+    game.scores.team2 = 15
+    assert.strictEqual(game.isGameComplete(), false)
+    assert.strictEqual(game.getWinningTeam(), null)
+
+    // Set team 1 to 21 points - game should be complete
+    game.scores.team1 = 21
+    assert.strictEqual(game.isGameComplete(), true)
+    assert.strictEqual(game.getWinningTeam(), 1)
+
+    // Test team 2 winning
+    game.scores.team1 = 18
+    game.scores.team2 = 22
+    assert.strictEqual(game.isGameComplete(), true)
+    assert.strictEqual(game.getWinningTeam(), 2)
+
+    // Test tie at 21
+    game.scores.team1 = 21
+    game.scores.team2 = 21
+    assert.strictEqual(game.isGameComplete(), true)
+    assert.strictEqual(game.getWinningTeam(), null)
+
+    // Test higher score wins when both over 21
+    game.scores.team1 = 23
+    game.scores.team2 = 21
+    assert.strictEqual(game.isGameComplete(), true)
+    assert.strictEqual(game.getWinningTeam(), 1)
+  })
+
+  test('should handle game reset properly', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Set up some game state
+    game.scores.team1 = 15
+    game.scores.team2 = 12
+    game.currentBid = 3
+    game.phase = 'playing'
+    game.trumpSuit = '♠'
+
+    // Verify initial state is set
+    assert.strictEqual(game.players.length, 4)
+    assert.strictEqual(game.scores.team1, 15)
+    assert.strictEqual(game.scores.team2, 12)
+    assert.strictEqual(game.currentBid, 3)
+    assert.strictEqual(game.phase, 'playing')
+    assert.strictEqual(game.trumpSuit, '♠')
+
+    // Reset the game
+    game.reset()
+
+    // Verify everything is reset to initial state
+    assert.strictEqual(game.players.length, 0)
+    assert.strictEqual(game.scores.team1, 0)
+    assert.strictEqual(game.scores.team2, 0)
+    assert.strictEqual(game.currentBid, 0)
+    assert.strictEqual(game.phase, 'waiting')
+    assert.strictEqual(game.trumpSuit, null)
+    assert.strictEqual(game.isGameComplete(), false)
+    assert.strictEqual(game.getWinningTeam(), null)
+  })
+
+  test('should preserve players when using resetGameKeepPlayers pattern', () => {
+    // Add players to game
+    const originalPlayers = []
+    for (let i = 0; i < 4; i++) {
+      const player = game.addPlayer(`id${i}`, `Player${i}`)
+      originalPlayers.push({ id: player.id, name: player.name, seat: player.seat, team: player.team })
+    }
+
+    // Set up some game state
+    game.scores.team1 = 15
+    game.scores.team2 = 12
+    game.currentBid = 3
+    game.phase = 'playing'
+    game.trumpSuit = '♠'
+
+    // Verify initial state
+    assert.strictEqual(game.players.length, 4)
+    assert.strictEqual(game.scores.team1, 15)
+
+    // Simulate the resetGameKeepPlayers logic
+    const currentPlayers = [...game.players]
+    game.reset()
+
+    // Re-add the same players
+    currentPlayers.forEach(player => {
+      if (player) {
+        game.addPlayer(player.id, player.name)
+      }
+    })
+
+    // Verify players are preserved with same teams and seats
+    assert.strictEqual(game.players.length, 4)
+    for (let i = 0; i < 4; i++) {
+      assert.strictEqual(game.players[i].id, originalPlayers[i].id)
+      assert.strictEqual(game.players[i].name, originalPlayers[i].name)
+      assert.strictEqual(game.players[i].seat, originalPlayers[i].seat)
+      assert.strictEqual(game.players[i].team, originalPlayers[i].team)
+    }
+
+    // Verify game state is reset
+    assert.strictEqual(game.scores.team1, 0)
+    assert.strictEqual(game.scores.team2, 0)
+    assert.strictEqual(game.currentBid, 0)
+    assert.strictEqual(game.phase, 'waiting')
+    assert.strictEqual(game.trumpSuit, null)
+  })
 })

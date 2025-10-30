@@ -487,7 +487,7 @@ body {
 .next-hand-btn {
   position: fixed;
   top: 20px;
-  right: 20px;
+  left: 20px;
   padding: 15px 25px;
   font-size: 16px;
   background: #4CAF50;
@@ -497,4 +497,22 @@ body {
   cursor: pointer;
   font-weight: bold;
   display: none;
+}
+
+.end-game-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 25px;
+  font-size: 16px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.end-game-btn:hover {
+  background: #d32f2f;
 }

@@ -21,7 +21,7 @@
         </div>
         
         <div class="status-panel scoreboard">
-          <div id="scoreboard">Team 1: 0 | Team 2: 0</div>
+          <div id="scoreboard">Blue Team: 0 | Red Team: 0</div>
         </div>
         
         <div class="status-panel trump-display" id="trumpDisplay">
@@ -95,7 +95,10 @@
     </div>
 
     <!-- Next Hand Button -->
-    <button class="next-hand-btn" id="nextHand" onclick="nextHand()">Start Next Hand</button>
+    <button class="next-hand-btn" id="nextHand" onclick="nextHand()">Next Hand</button>
+    
+    <!-- End Game Button -->
+    <button class="end-game-btn" id="endGame" onclick="endGame()">End Game</button>
 
     <!-- Audit Log -->
     <div class="audit-log" id="auditLog">
@@ -112,12 +115,12 @@
         <h2 id="handResultTitle">Hand Complete!</h2>
         <div class="score-display">
           <div class="team-score team1">
-            <span class="team-label">Team 1</span>
+            <span class="team-label">Blue Team</span>
             <span class="score" id="team1Score">0</span>
           </div>
           <div class="vs">VS</div>
           <div class="team-score team2">
-            <span class="team-label">Team 2</span>
+            <span class="team-label">Red Team</span>
             <span class="score" id="team2Score">0</span>
           </div>
         </div>

@@ -116,6 +116,15 @@ playerNameInput.addEventListener('keypress', (event) => {
 let selectedCards = []
 let currentTrumpSuit = null
 
+// Helper function to get team color name
+function getTeamName (teamNumber) {
+  return teamNumber === 1 ? 'Blue Team' : 'Red Team'
+}
+
+function getTeamColor (teamNumber) {
+  return teamNumber === 1 ? '#0064c8' : '#c80000'
+}
+
 // Global functions for button handlers
 function bid (amount) {
   socket.emit('bid', amount)
@@ -134,6 +143,12 @@ function nextHand () {
   nextHandBtn.style.display = 'none'
 }
 
+function endGame () {
+  if (confirm('Are you sure you want to end the current game? This will reset all scores and start fresh.')) {
+    socket.emit('endGame')
+  }
+}
+
 function showWinningModal (winningTeam, team1Score, team2Score) {
   const modal = document.getElementById('handResultModal')
   const title = document.getElementById('handResultTitle')
@@ -143,7 +158,7 @@ function showWinningModal (winningTeam, team1Score, team2Score) {
   if (winningTeam === 0) {
     title.textContent = 'Hand Complete - Tie!'
   } else {
-    title.textContent = `Team ${winningTeam} Leads!`
+    title.textContent = `${getTeamName(winningTeam)} Leads!`
   }
 
   team1ScoreEl.textContent = team1Score
@@ -159,7 +174,7 @@ function showWinningModal (winningTeam, team1Score, team2Score) {
 
 // Event handlers
 socket.on('welcome', ({ team, name, position }) => {
-  document.getElementById('status').innerText = `${name} (Team ${team})`
+  document.getElementById('status').innerText = `${name} (${getTeamName(team)})`
   playerPosition = position
   updatePlayerPositions()
 })
@@ -203,6 +218,17 @@ socket.on('yourTurn', data => {
       biddingDiv.innerHTML = `
         <h3 style="color: #ff4444;">⚡ CINCH OVERRIDE ⚡</h3>
         <p>The opposing team bid cinch. You can override!</p>
+        <div class="action-buttons">${buttonsHtml}</div>
+      `
+    } else {
+      // Normal bidding
+      const buttonsHtml = data.validBids.map(b =>
+        `<button class="action-button bid-button ${b === 'cinch' ? 'cinch' : ''}" onclick="bid('${b}')">${b}</button>`
+      ).join('')
+      const currentBidText = data.currentBid > 0 ? data.currentBid : 'None'
+      biddingDiv.innerHTML = `
+        <h3>Your Turn to Bid</h3>
+        <p>Current bid: ${currentBidText}</p>
         <div class="action-buttons">${buttonsHtml}</div>
       `
     }
@@ -301,7 +327,7 @@ socket.on('trickPlayed', ({ trickPlays, winner }) => {
 })
 
 socket.on('scoreUpdate', scores => {
-  scoreDiv.innerText = `Team 1: ${scores.team1} | Team 2: ${scores.team2}`
+  scoreDiv.innerText = `Blue Team: ${scores.team1} | Red Team: ${scores.team2}`
   nextHandBtn.style.display = 'block'
 })
 
@@ -324,9 +350,9 @@ socket.on('bidUpdate', ({ currentBid, highestBidder, bidContract, bidderTeam }) 
 
     // Color the bid based on the team
     if (bidderTeam === 1) {
-      currentBidSpan.style.color = '#0064c8' // Team 1 blue
+      currentBidSpan.style.color = '#0064c8' // Blue Team
     } else if (bidderTeam === 2) {
-      currentBidSpan.style.color = '#c80000' // Team 2 red
+      currentBidSpan.style.color = '#c80000' // Red Team
     } else {
       currentBidSpan.style.color = '#ffeb3b' // Default yellow
     }
@@ -344,6 +370,7 @@ socket.on('trumpCleared', () => {
   bidDisplay.style.display = 'none'
   currentBidSpan.innerText = '-'
   currentBidSpan.style.color = '#ffeb3b' // Reset to default
+  nextHandBtn.style.display = 'none' // Hide Next Hand button when new hand starts
 })
 
 socket.on('handStarted', ({ dealer }) => {
@@ -364,10 +391,67 @@ socket.on('message', (msg) => {
 
   // Don't clear cards when trick wins - keep them visible until next hand
   if (msg.includes('Hand over')) {
-    // Show winning team modal
-    const team1Score = parseInt(msg.match(/Team 1: (\d+)/)[1])
-    const team2Score = parseInt(msg.match(/Team 2: (\d+)/)[1])
-    showWinningModal(team1Score > team2Score ? 1 : team2Score > team1Score ? 2 : 0, team1Score, team2Score)
+    // Show winning team modal - parse from Blue Team/Red Team format
+    const blueScore = parseInt(msg.match(/Blue Team: (\d+)/)[1])
+    const redScore = parseInt(msg.match(/Red Team: (\d+)/)[1])
+    showWinningModal(blueScore > redScore ? 1 : redScore > blueScore ? 2 : 0, blueScore, redScore)
   }
+})
+
+socket.on('gameOver', (data) => {
+  const modal = document.getElementById('handResultModal')
+  const title = document.getElementById('handResultTitle')
+  const team1ScoreEl = document.getElementById('team1Score')
+  const team2ScoreEl = document.getElementById('team2Score')
+
+  if (data.winningTeam) {
+    title.textContent = `🎉 GAME OVER! ${getTeamName(data.winningTeam)} Wins!`
+    title.style.color = getTeamColor(data.winningTeam)
+  } else {
+    title.textContent = '🎉 GAME OVER! It\'s a Tie!'
+    title.style.color = '#ffeb3b'
+  }
+
+  team1ScoreEl.textContent = data.finalScores.team1
+  team2ScoreEl.textContent = data.finalScores.team2
+
+  modal.classList.remove('hidden')
+
+  // Hide the "Next Hand" button since the game is over
+  nextHandBtn.style.display = 'none'
+
+  // Don't auto-hide the modal for game over
+})
+
+socket.on('gameReset', () => {
+  // Reset all UI elements to initial state
+  handDiv.innerHTML = ''
+  playedDiv.innerHTML = ''
+  scoreDiv.innerText = 'Blue Team: 0 | Red Team: 0'
+
+  // Hide all action areas and modals
+  biddingDiv.classList.add('hidden')
+  chooseTrumpDiv.classList.add('hidden')
+  discardingDiv.classList.add('hidden')
+  nextHandBtn.style.display = 'none'
+
+  // Hide trump and bid displays
+  trumpDisplay.style.display = 'none'
+  bidDisplay.style.display = 'none'
+  currentBidSpan.innerText = '-'
+  currentBidSpan.style.color = '#ffeb3b'
+  trumpSuitSpan.innerText = ''
+
+  // Hide hand result modal
+  const modal = document.getElementById('handResultModal')
+  modal.classList.add('hidden')
+
+  // Reset game state but keep player position info (will be updated by playerJoined event)
+  selectedCards = []
+  currentTrumpSuit = null
+  currentPlayer = -1
+
+  // Don't reset playerPosition, playerNames, playerTeams here -
+  // they will be updated by the playerJoined event that follows
 })
 /* eslint-enable no-undef, no-unused-vars */
