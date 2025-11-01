@@ -10,6 +10,23 @@ let playerPosition = -1
 const playerNames = ['', '', '', '']
 const playerTeams = [0, 0, 0, 0]
 let currentPlayer = -1
+let sessionId = null
+
+// Check for existing session on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const savedSession = localStorage.getItem('cinchSession')
+  if (savedSession) {
+    try {
+      const session = JSON.parse(savedSession)
+      sessionId = session.sessionId
+      // Attempt to rejoin with saved session
+      socket.emit('rejoinGame', session)
+    } catch (e) {
+      console.error('Failed to parse saved session', e)
+      localStorage.removeItem('cinchSession')
+    }
+  }
+})
 
 // UI Elements
 const handDiv = document.getElementById('hand')
@@ -27,11 +44,27 @@ const auditContent = document.getElementById('auditContent')
 const playerNameSpan = document.getElementById('playerName')
 const playMessage = document.getElementById('playMessage')
 const playMessageText = document.getElementById('playMessageText')
+const followSuitMessage = document.getElementById('followSuitMessage')
+const followSuitMessageText = document.getElementById('followSuitMessageText')
 const gameLogPanel = document.getElementById('gameLogPanel')
+
+function showFollowSuitMessage () {
+  followSuitMessage.classList.remove('hidden')
+}
+
+function hideFollowSuitMessage () {
+  followSuitMessage.classList.add('hidden')
+}
 
 function joinGame () {
   const name = playerNameInput.value.trim() || 'Anonymous'
-  socket.emit('registerName', name)
+
+  // Generate a session ID if we don't have one
+  if (!sessionId) {
+    sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+  }
+
+  socket.emit('registerName', { name, sessionId })
 
   // Update player name in top menu
   playerNameSpan.textContent = name
@@ -143,10 +176,32 @@ function nextHand () {
   nextHandBtn.style.display = 'none'
 }
 
+function nextHandFromModal () {
+  // Hide the modal first
+  const modal = document.getElementById('handResultModal')
+  modal.classList.add('hidden')
+
+  // Then trigger next hand
+  playedDiv.innerHTML = ''
+  trumpDisplay.style.display = 'none'
+  socket.emit('nextHand')
+  nextHandBtn.style.display = 'none'
+}
+
 function endGame () {
-  if (confirm('Are you sure you want to end the current game? This will reset all scores and start fresh.')) {
-    socket.emit('endGame')
-  }
+  // Show the confirmation modal
+  const modal = document.getElementById('endGameModal')
+  modal.classList.remove('hidden')
+}
+
+function closeEndGameModal () {
+  const modal = document.getElementById('endGameModal')
+  modal.classList.add('hidden')
+}
+
+function confirmEndGame () {
+  socket.emit('endGame')
+  closeEndGameModal()
 }
 
 function showWinningModal (winningTeam, team1Score, team2Score) {
@@ -166,16 +221,52 @@ function showWinningModal (winningTeam, team1Score, team2Score) {
 
   modal.classList.remove('hidden')
 
-  // Hide modal after 3 seconds
-  setTimeout(() => {
-    modal.classList.add('hidden')
-  }, 3000)
+  // Don't auto-hide - let player click "Play Next Hand" button
 }
 
 // Event handlers
 socket.on('welcome', ({ team, name, position }) => {
   playerPosition = position
   updatePlayerPositions()
+
+  // Save session to localStorage
+  localStorage.setItem('cinchSession', JSON.stringify({
+    sessionId,
+    name,
+    team,
+    position
+  }))
+
+  // Update UI
+  playerNameSpan.textContent = name
+  joinForm.style.display = 'none'
+  gameUI.classList.remove('hidden')
+})
+
+socket.on('rejoinSuccess', ({ team, name, position }) => {
+  playerPosition = position
+  playerNameSpan.textContent = name
+  updatePlayerPositions()
+
+  // Hide join form and show game UI
+  joinForm.style.display = 'none'
+  gameUI.classList.remove('hidden')
+
+  // Hide action modals initially
+  biddingDiv.classList.add('hidden')
+  chooseTrumpDiv.classList.add('hidden')
+  discardingDiv.classList.add('hidden')
+  nextHandBtn.style.display = 'none'
+
+  addAuditMessage('Reconnected to game!')
+})
+
+socket.on('rejoinFailed', () => {
+  // Clear invalid session and show join form
+  localStorage.removeItem('cinchSession')
+  sessionId = null
+  joinForm.style.display = 'flex'
+  gameUI.classList.add('hidden')
 })
 
 socket.on('playerJoined', ({ players }) => {
@@ -398,6 +489,15 @@ socket.on('handStarted', ({ dealer }) => {
 socket.on('message', (msg) => {
   addAuditMessage(msg)
 
+  // Show follow suit message above cards
+  if (msg.includes('must follow suit')) {
+    showFollowSuitMessage()
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      hideFollowSuitMessage()
+    }, 3000)
+  }
+
   // Don't clear cards when trick wins - keep them visible until next hand
   if (msg.includes('Hand over')) {
     // Show winning team modal - parse from Blue Team/Red Team format
@@ -462,6 +562,11 @@ socket.on('gameReset', () => {
 
   // Don't reset playerPosition, playerNames, playerTeams here -
   // they will be updated by the playerJoined event that follows
+})
+
+socket.on('hideHandResultModal', () => {
+  const modal = document.getElementById('handResultModal')
+  modal.classList.add('hidden')
 })
 
 // Close game log menu when clicking outside

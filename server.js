@@ -32,19 +32,118 @@ function getTeamName (teamNumber) {
 game = new CinchGame()
 
 io.on('connection', socket => {
-  if (game.players.length >= 4) {
-    socket.emit('message', '❌ Game is full. Try again later.')
-    socket.disconnect()
-    return
-  }
+  // Register game event handlers for this socket (before rejoin/register)
+  socket.on('bid', bid => handleBid(socket, bid))
+  socket.on('chooseTrump', suit => handleTrump(socket, suit))
+  socket.on('discardCards', indices => handleDiscard(socket, indices))
+  socket.on('playCard', index => handlePlay(socket, index))
+  socket.on('nextHand', () => {
+    if (game.players.length === 4) {
+      // Hide modal for all players before starting new hand
+      io.emit('hideHandResultModal')
+      startNewHand()
+    }
+  })
+  socket.on('endGame', () => {
+    io.emit('message', '🔄 Game ended by player request. Starting fresh!')
+    resetGameKeepPlayers()
+  })
 
-  socket.on('registerName', name => {
+  // Handle rejoin attempts
+  socket.on('rejoinGame', session => {
+    // Find player by session ID
+    const existingPlayer = game.players.find(p => p && p.sessionId === session.sessionId)
+
+    if (existingPlayer) {
+      // Update socket ID for reconnected player
+      existingPlayer.id = socket.id
+
+      socket.emit('rejoinSuccess', {
+        team: existingPlayer.team,
+        name: existingPlayer.name,
+        position: existingPlayer.seat
+      })
+
+      // Send current game state
+      socket.emit('playerJoined', {
+        players: game.players.map(p => p ? { name: p.name, team: p.team, seat: p.seat } : null)
+      })
+
+      // Send current hand if in progress
+      if (existingPlayer.hand.size() > 0) {
+        socket.emit('yourHand', existingPlayer.hand.toArray())
+      }
+
+      // Send current trump if set
+      if (game.trumpSuit) {
+        socket.emit('trumpSelected', game.trumpSuit)
+      }
+
+      // Send current scores
+      socket.emit('scoreUpdate', game.scores)
+
+      // Send current bid info if in bidding or later phase
+      if (game.currentBid > 0 || game.highestBidder !== null) {
+        socket.emit('bidUpdate', {
+          currentBid: game.currentBid,
+          highestBidder: game.highestBidder,
+          bidContract: game.bidContract,
+          bidderTeam: game.bidderTeam
+        })
+      }
+
+      // Send current trick plays if in play phase
+      if (game.trickPlays && game.trickPlays.length > 0) {
+        socket.emit('trickUpdate', { trickPlays: game.trickPlays })
+      }
+
+      // If it's this player's turn, notify them
+      if (game.currentPlayer === existingPlayer.seat) {
+        if (game.phase === 'bidding') {
+          const validBids = Object.keys(BID_VALUES).filter(b => BID_VALUES[b] > game.currentBid || b === 'pass')
+          const cinchOverride = game.cinchOverride || false
+          socket.emit('yourTurn', {
+            phase: 'bidding',
+            currentPlayer: game.currentPlayer,
+            validBids,
+            currentBid: game.currentBid,
+            cinchOverride
+          })
+        } else if (game.phase === 'playing') {
+          socket.emit('yourTurn', {
+            phase: 'play',
+            currentPlayer: game.currentPlayer
+          })
+        } else if (game.phase === 'chooseTrump') {
+          socket.emit('chooseTrump', SUITS)
+        }
+      }
+
+      io.emit('message', `🔄 ${existingPlayer.name} reconnected.`)
+    } else {
+      // Session not found or expired
+      socket.emit('rejoinFailed')
+    }
+  })
+
+  socket.on('registerName', data => {
+    const { name, sessionId } = typeof data === 'string' ? { name: data, sessionId: null } : data
+
+    if (game.players.length >= 4) {
+      socket.emit('message', '❌ Game is full. Try again later.')
+      socket.disconnect()
+      return
+    }
+
     const player = game.addPlayer(socket.id, name)
     if (!player) {
       socket.emit('message', '❌ Game is full. Try again later.')
       socket.disconnect()
       return
     }
+
+    // Store session ID
+    player.sessionId = sessionId
 
     socket.emit('welcome', { team: player.team, name: player.name, position: player.seat })
     io.emit('message', `👋 ${player.name} joined (${getTeamName(player.team)}).`)
@@ -58,21 +157,21 @@ io.on('connection', socket => {
       startNewHand()
     }
   })
-
-  socket.on('bid', bid => handleBid(socket, bid))
-  socket.on('chooseTrump', suit => handleTrump(socket, suit))
-  socket.on('discardCards', indices => handleDiscard(socket, indices))
-  socket.on('playCard', index => handlePlay(socket, index))
-  socket.on('nextHand', () => {
-    if (game.players.length === 4) startNewHand()
-  })
-  socket.on('endGame', () => {
-    io.emit('message', '🔄 Game ended by player request. Starting fresh!')
-    resetGameKeepPlayers()
-  })
   socket.on('disconnect', () => {
-    io.emit('message', '❌ A player disconnected. Game reset.')
-    resetGame()
+    const player = game.players.find(p => p && p.id === socket.id)
+    if (player) {
+      io.emit('message', `⏸️ ${player.name} disconnected. Waiting for reconnection...`)
+
+      // Give player 60 seconds to reconnect before resetting
+      setTimeout(() => {
+        // Check if player is still disconnected
+        const stillDisconnected = game.players.find(p => p && p.sessionId === player.sessionId && p.id === socket.id)
+        if (stillDisconnected) {
+          io.emit('message', '❌ Player did not reconnect. Game reset.')
+          resetGame()
+        }
+      }, 60000)
+    }
   })
 })
 

@@ -64,6 +64,11 @@
         <span id="playMessageText">Your turn to play a card!</span>
       </div>
 
+      <!-- Follow Suit Message -->
+      <div class="follow-suit-message hidden" id="followSuitMessage">
+        <span id="followSuitMessageText">You must follow suit if you have one</span>
+      </div>
+
       <!-- Player's Hand -->
       <div class="player-hand" id="hand"></div>
     </div>
@@ -125,6 +130,19 @@
             <span class="team-label">Red Team</span>
             <span class="score" id="team2Score">0</span>
           </div>
+        </div>
+        <button class="modal-next-hand-btn" onclick="nextHandFromModal()">Play Next Hand</button>
+      </div>
+    </div>
+
+    <!-- End Game Confirmation Modal -->
+    <div class="confirm-modal hidden" id="endGameModal">
+      <div class="confirm-modal-content">
+        <h2>End Game?</h2>
+        <p>Are you sure you want to end the current game? This will reset all scores and start fresh.</p>
+        <div class="confirm-buttons">
+          <button class="confirm-btn cancel-btn" onclick="closeEndGameModal()">Cancel</button>
+          <button class="confirm-btn confirm-btn-yes" onclick="confirmEndGame()">End Game</button>
         </div>
       </div>
     </div>
