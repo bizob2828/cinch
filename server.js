@@ -7,6 +7,9 @@ import { SUITS, BID_VALUES } from './lib/constants.js'
 
 const app = express()
 const server = http.createServer(app)
+// The CORS origin is here to deploy on Render.com
+// Make sure to adjust it to your deployment URL
+// I may set this as an environment variable later
 const io = new Server(server, {
   cors: {
     origin: 'https://cinch-57zi.onrender.com',

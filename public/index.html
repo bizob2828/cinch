@@ -13,28 +13,29 @@
   </div>
 
   <div id="gameUI" class="hidden">
-    <div class="table-container">
-      <!-- Game Status Area -->
-      <div class="game-status">
-        <div class="status-panel player-status">
-          <div id="status">Waiting for players...</div>
-        </div>
-        
-        <div class="status-panel scoreboard">
-          <div id="scoreboard">Blue Team: 0 | Red Team: 0</div>
-        </div>
-        
-        <div class="status-panel trump-display" id="trumpDisplay">
-          <div>Trump:</div>
-          <div class="trump-suit" id="trumpSuit"></div>
-        </div>
-        
-        <div class="status-panel bid-display" id="bidDisplay">
-          <div>Bid:</div>
-          <div class="current-bid" id="currentBid">-</div>
-        </div>
+    <!-- Top Menu Bar -->
+    <div class="top-menu-bar">
+      <div class="menu-section">
+        <span class="menu-label">Player:</span>
+        <span class="menu-value" id="playerName">-</span>
       </div>
+      
+      <div class="menu-section scoreboard-menu">
+        <span class="menu-value" id="scoreboard">Blue Team: 0 | Red Team: 0</span>
+      </div>
+      
+      <div class="menu-section trump-menu" id="trumpDisplay">
+        <span class="menu-label">Trump:</span>
+        <span class="trump-suit menu-value" id="trumpSuit">-</span>
+      </div>
+      
+      <div class="menu-section bid-menu" id="bidDisplay">
+        <span class="menu-label">Bid:</span>
+        <span class="current-bid menu-value" id="currentBid">-</span>
+      </div>
+    </div>
 
+    <div class="table-container">
       <!-- Game Table -->
       <div class="game-table">
         <!-- Player Positions -->
@@ -58,22 +59,17 @@
         <div class="table-center" id="playedCards"></div>
       </div>
 
+      <!-- Play Turn Message -->
+      <div class="play-message hidden" id="playMessage">
+        <span id="playMessageText">Your turn to play a card!</span>
+      </div>
+
       <!-- Player's Hand -->
       <div class="player-hand" id="hand"></div>
     </div>
 
     <!-- Action Modals -->
-    <div id="bidding" class="action-area hidden">
-      <h3>Your turn to bid!</h3>
-      <div class="action-buttons">
-        <button class="action-button bid-button" onclick="bid('pass')">Pass</button>
-        <button class="action-button bid-button" onclick="bid('1')">1</button>
-        <button class="action-button bid-button" onclick="bid('2')">2</button>
-        <button class="action-button bid-button" onclick="bid('3')">3</button>
-        <button class="action-button bid-button" onclick="bid('4')">4</button>
-        <button class="action-button bid-button cinch" onclick="bid('cinch')">Cinch</button>
-      </div>
-    </div>
+    <div id="bidding" class="action-area hidden"></div>
 
     <div id="chooseTrump" class="action-area hidden">
       <h3>You won the bid!</h3>
@@ -100,13 +96,19 @@
     <!-- End Game Button -->
     <button class="end-game-btn" id="endGame" onclick="endGame()">End Game</button>
 
-    <!-- Audit Log -->
-    <div class="audit-log" id="auditLog">
-      <div class="audit-header" onclick="toggleAudit()">
-        <span>Game Log</span>
-        <span class="audit-toggle" id="auditToggle">▼</span>
+    <!-- Game Log Pop-out Menu -->
+    <div class="game-log-menu">
+      <button class="game-log-toggle" id="gameLogToggle" onclick="toggleGameLog()">
+        <span class="log-icon">📋</span>
+        <span class="log-label">Game Log</span>
+      </button>
+      <div class="game-log-panel hidden" id="gameLogPanel">
+        <div class="log-panel-header">
+          <span>Game Log</span>
+          <button class="log-close-btn" onclick="toggleGameLog()">✕</button>
+        </div>
+        <div class="log-panel-content" id="auditContent"></div>
       </div>
-      <div class="audit-content" id="auditContent"></div>
     </div>
 
     <!-- Hand Result Modal -->

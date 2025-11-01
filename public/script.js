@@ -10,7 +10,6 @@ let playerPosition = -1
 const playerNames = ['', '', '', '']
 const playerTeams = [0, 0, 0, 0]
 let currentPlayer = -1
-let auditCollapsed = false
 
 // UI Elements
 const handDiv = document.getElementById('hand')
@@ -25,22 +24,25 @@ const bidDisplay = document.getElementById('bidDisplay')
 const currentBidSpan = document.getElementById('currentBid')
 const nextHandBtn = document.getElementById('nextHand')
 const auditContent = document.getElementById('auditContent')
-const auditToggle = document.getElementById('auditToggle')
+const playerNameSpan = document.getElementById('playerName')
+const playMessage = document.getElementById('playMessage')
+const playMessageText = document.getElementById('playMessageText')
+const gameLogPanel = document.getElementById('gameLogPanel')
 
 function joinGame () {
   const name = playerNameInput.value.trim() || 'Anonymous'
   socket.emit('registerName', name)
+
+  // Update player name in top menu
+  playerNameSpan.textContent = name
 
   // Hide join form and show game UI
   joinForm.style.display = 'none'
   gameUI.classList.remove('hidden')
 }
 
-function toggleAudit () {
-  auditCollapsed = !auditCollapsed
-  auditContent.classList.toggle('collapsed', auditCollapsed)
-  auditToggle.classList.toggle('collapsed', auditCollapsed)
-  auditToggle.textContent = auditCollapsed ? '▶' : '▼'
+function toggleGameLog () {
+  gameLogPanel.classList.toggle('hidden')
 }
 
 function addAuditMessage (message) {
@@ -49,10 +51,8 @@ function addAuditMessage (message) {
   messageDiv.textContent = message
   auditContent.appendChild(messageDiv)
 
-  // Auto-scroll to bottom if not collapsed
-  if (!auditCollapsed) {
-    auditContent.scrollTop = auditContent.scrollHeight
-  }
+  // Auto-scroll to bottom
+  auditContent.scrollTop = auditContent.scrollHeight
 }
 
 function updatePlayerPositions () {
@@ -174,7 +174,6 @@ function showWinningModal (winningTeam, team1Score, team2Score) {
 
 // Event handlers
 socket.on('welcome', ({ team, name, position }) => {
-  document.getElementById('status').innerText = `${name} (${getTeamName(team)})`
   playerPosition = position
   updatePlayerPositions()
 })
@@ -213,7 +212,7 @@ socket.on('yourTurn', data => {
   if (data.phase === 'bidding') {
     if (data.cinchOverride) {
       const buttonsHtml = data.validBids.map(b =>
-        `<button class="action-button bid-button ${b === 'cinch' ? 'cinch' : ''}" onclick="bid('${b}')">${b}</button>`
+        `<button class="action-button bid-button ${b === 'pass' ? 'pass' : ''}" onclick="bid('${b}')">${b}</button>`
       ).join('')
       biddingDiv.innerHTML = `
         <h3 style="color: #ff4444;">⚡ CINCH OVERRIDE ⚡</h3>
@@ -223,7 +222,7 @@ socket.on('yourTurn', data => {
     } else {
       // Normal bidding
       const buttonsHtml = data.validBids.map(b =>
-        `<button class="action-button bid-button ${b === 'cinch' ? 'cinch' : ''}" onclick="bid('${b}')">${b}</button>`
+        `<button class="action-button bid-button ${b === 'pass' ? 'pass' : ''}" onclick="bid('${b}')">${b}</button>`
       ).join('')
       const currentBidText = data.currentBid > 0 ? data.currentBid : 'None'
       biddingDiv.innerHTML = `
@@ -235,10 +234,16 @@ socket.on('yourTurn', data => {
     biddingDiv.classList.remove('hidden')
   } else if (data.phase === 'play') {
     addAuditMessage('Your turn to play a card')
+    // Show play message
+    playMessageText.textContent = 'Your turn to play a card!'
+    playMessage.classList.remove('hidden')
+
     handDiv.querySelectorAll('.card').forEach(cardDiv => {
       cardDiv.onclick = () => {
         const index = cardDiv.getAttribute('data-i')
         socket.emit('playCard', parseInt(index))
+        // Hide the play message when card is played
+        playMessage.classList.add('hidden')
         // Don't disable clicks here - wait for server confirmation
       }
     })
@@ -247,6 +252,7 @@ socket.on('yourTurn', data => {
 
 socket.on('chooseTrump', suits => {
   console.log('choose trump', suits)
+  playMessage.classList.add('hidden')
   chooseTrumpDiv.classList.remove('hidden')
 })
 
@@ -334,11 +340,12 @@ socket.on('scoreUpdate', scores => {
 socket.on('trumpSelected', suit => {
   currentTrumpSuit = suit
   trumpSuitSpan.innerText = suit
-  // Color the trump suit display red for hearts and diamonds
+  // Add appropriate CSS class for trump suit color
+  trumpSuitSpan.classList.remove('red-suit', 'black-suit')
   if (suit === '♥' || suit === '♦') {
-    trumpSuitSpan.style.color = '#cc0000'
+    trumpSuitSpan.classList.add('red-suit')
   } else {
-    trumpSuitSpan.style.color = '#fff'
+    trumpSuitSpan.classList.add('black-suit')
   }
   trumpDisplay.style.display = 'block'
   addAuditMessage(`Trump suit selected: ${suit}`)
@@ -380,6 +387,8 @@ socket.on('handStarted', ({ dealer }) => {
   bidDisplay.style.display = 'none'
   currentBidSpan.innerText = '-'
   currentBidSpan.style.color = '#ffeb3b' // Reset to default
+  // Hide play message
+  playMessage.classList.add('hidden')
   if (dealer !== undefined) {
     addAuditMessage(`New hand started. ${playerNames[dealer]} is dealing.`)
   }
@@ -454,4 +463,15 @@ socket.on('gameReset', () => {
   // Don't reset playerPosition, playerNames, playerTeams here -
   // they will be updated by the playerJoined event that follows
 })
+
+// Close game log menu when clicking outside
+document.addEventListener('click', function (event) {
+  const gameLogMenu = document.querySelector('.game-log-menu')
+  const gameLogToggle = document.getElementById('gameLogToggle')
+
+  if (!gameLogMenu.contains(event.target) && !gameLogPanel.classList.contains('hidden')) {
+    gameLogPanel.classList.add('hidden')
+  }
+})
+
 /* eslint-enable no-undef, no-unused-vars */
