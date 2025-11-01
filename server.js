@@ -4,6 +4,7 @@ import http from 'http'
 import { Server } from 'socket.io'
 import { CinchGame } from './lib/game.js'
 import { SUITS, BID_VALUES } from './lib/constants.js'
+const origin = process.env.ORIGIN || 'http://localhost:3000'
 
 const app = express()
 const server = http.createServer(app)
@@ -12,7 +13,7 @@ const server = http.createServer(app)
 // I may set this as an environment variable later
 const io = new Server(server, {
   cors: {
-    origin: 'https://cinch-57zi.onrender.com',
+    origin,
     methods: ['GET', 'POST']
   }
 })
