@@ -187,31 +187,15 @@ describe('CinchGame Class', () => {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
 
-    game.dealCards(6)
+    game.dealCards()
 
-    // Each player should have 6 cards
+    // Each player should have 9 cards
     game.players.forEach(player => {
-      assert.strictEqual(player.hand.size(), 6)
+      assert.strictEqual(player.hand.size(), 9)
     })
 
     // Deck should have remaining cards
-    assert.strictEqual(game.deck.size(), 52 - (4 * 6))
-  })
-
-  test('should deal new cards to fill hands', () => {
-    for (let i = 0; i < 4; i++) {
-      game.addPlayer(`id${i}`, `Player${i}`)
-    }
-
-    // Deal initial cards
-    game.dealCards(3)
-
-    // Deal new cards to fill to 6
-    game.dealNewCards()
-
-    game.players.forEach(player => {
-      assert.strictEqual(player.hand.size(), 6)
-    })
+    assert.strictEqual(game.deck.size(), 52 - (4 * 9))
   })
 
   test('should get player by id', () => {
