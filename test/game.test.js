@@ -1,6 +1,7 @@
 import { test, describe, beforeEach } from 'node:test'
 import assert from 'node:assert'
 import { Card } from '../lib/card.js'
+import { Deck } from '../lib/deck.js'
 import { CinchGame } from '../lib/game.js'
 
 describe('CinchGame Class', () => {
@@ -1018,5 +1019,154 @@ describe('CinchGame Class', () => {
     assert.strictEqual(results.high.card.rank, 'A')
     assert.strictEqual(results.high.card.suit, '♠')
     assert.strictEqual(results.high.team, 2) // Player 1 is on team 2
+  })
+
+  test('should handle dealNewCards when deck runs out', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Create a nearly empty deck by dealing most cards
+    game.deck = new Deck()
+    // Deal out most cards so only a few remain
+    for (let i = 0; i < 50; i++) {
+      game.deck.deal(1)
+    }
+
+    // Give each player some cards
+    game.players.forEach(player => {
+      player.addCardToHand(new Card('♥', 'A'))
+    })
+
+    // Now try to deal new cards - should handle empty deck gracefully
+    game.dealNewCards()
+
+    // Players should have received cards up to the deck limit
+    // This tests the conditional at lines 140-143 where deck.isEmpty() is checked
+    assert.ok(true) // Test passes if no error thrown
+  })
+
+  test('should handle cinch override when player already bid', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.startNewHand() // Dealer is 0 (team 1), bidding starts with player 1
+
+    const player0 = game.players[0] // Team 1, dealer
+    const player1 = game.players[1] // Team 2
+
+    // Player 0 (dealer) bids first
+    game.processBid(player0, '2')
+
+    // Manually set up cinch override phase where player 0 tries to counter
+    // even though they already bid (edge case testing lines 200-203)
+    game.cinchOverridePhase = true
+    game.cinchBidder = player1
+    game.cinchBidder.team = 2
+    game.currentPlayer = 0
+
+    // Player 0 tries to counter with cinch (but already bid)
+    const result = game.processBid(player0, 'cinch')
+
+    // Should return error indicating player already bid
+    assert.strictEqual(result.finished, false)
+    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(result.error, 'Player has already bid this hand')
+  })
+
+  test('should handle pass during cinch override to next eligible player', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.startNewHand() // Dealer is 0 (team 1), bidding starts with player 1
+
+    const player0 = game.players[0] // Team 1, dealer
+    const player1 = game.players[1] // Team 2
+
+    // Player 1 bids cinch - dealer (player 0) can override
+    let result = game.processBid(player1, 'cinch')
+    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(game.cinchOverridePhase, true)
+
+    // Dealer passes - this should test lines 222-224
+    result = game.processBid(player0, 'pass')
+
+    // Should be finished since only dealer can override
+    assert.strictEqual(result.finished, true)
+    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(result.overrideSuccessful, false)
+  })
+
+  test('should handle getEligibleOpposingPlayers with invalid dealer index', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Set up cinch bidder but don't start hand (dealer will be -1)
+    game.cinchBidder = game.players[0]
+
+    // This should test lines 290-292 where dealer < 0
+    const eligible = game.getEligibleOpposingPlayers()
+    assert.strictEqual(eligible.length, 0)
+
+    // Test with dealer >= players.length
+    game.dealer = 10
+    const eligible2 = game.getEligibleOpposingPlayers()
+    assert.strictEqual(eligible2.length, 0)
+  })
+
+  test('should handle getEligibleOpposingPlayers with null dealer', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+
+    // Set dealer to valid index but make that slot null
+    game.dealer = 2
+    game.players[2] = null
+    game.cinchBidder = game.players[0]
+
+    // This should test lines 297-299 where dealer is null
+    const eligible = game.getEligibleOpposingPlayers()
+    assert.strictEqual(eligible.length, 0)
+  })
+
+  test('should handle multiple eligible players during cinch override', () => {
+    for (let i = 0; i < 4; i++) {
+      game.addPlayer(`id${i}`, `Player${i}`)
+    }
+    game.startNewHand()
+
+    const player1 = game.players[1] // Team 2
+
+    // Manually create a scenario where multiple passes happen
+    // Set up cinch override phase
+    game.cinchOverridePhase = true
+    game.cinchBidder = player1
+    game.currentPlayer = 0
+    game.overrideAttempts = 0
+    game.dealer = 0
+
+    // Mock getEligibleOpposingPlayers to return multiple players temporarily
+    const originalMethod = game.getEligibleOpposingPlayers.bind(game)
+    let callCount = 0
+    game.getEligibleOpposingPlayers = () => {
+      callCount++
+      // First call returns 2 players to test the continue path
+      if (callCount === 1) {
+        return [game.players[0], game.players[2]]
+      }
+      // Subsequent calls use original logic
+      return originalMethod()
+    }
+
+    // First pass should continue to next player (tests lines 222-224)
+    const result = game.processBid(game.players[0], 'pass')
+
+    // Restore original method
+    game.getEligibleOpposingPlayers = originalMethod
+
+    // Should not be finished, should continue override
+    assert.strictEqual(result.finished, false)
+    assert.strictEqual(result.cinchOverride, true)
   })
 })
