@@ -46,8 +46,10 @@ io.on('connection', socket => {
     }
   })
   socket.on('endGame', () => {
-    io.emit('message', '🔄 Game ended by player request. Starting fresh!')
-    resetGameKeepPlayers()
+    io.emit('message', '🔄 Game ended by player request. Returning to login...')
+    // Clear all game state and send players back to login
+    game.reset()
+    io.emit('gameEnded')
   })
 
   // Handle rejoin attempts
@@ -180,34 +182,6 @@ function resetGame () {
   game.reset()
   // Emit gameReset to clear client UI states
   io.emit('gameReset')
-}
-
-function resetGameKeepPlayers () {
-  // Store current players before reset
-  const currentPlayers = [...game.players]
-
-  // Reset the game state
-  game.reset()
-
-  // Re-add the same players in the same seats
-  currentPlayers.forEach(player => {
-    if (player) {
-      game.addPlayer(player.id, player.name)
-    }
-  })
-
-  // Emit gameReset to clear client UI states
-  io.emit('gameReset')
-
-  // Re-broadcast player list to all clients
-  io.emit('playerJoined', {
-    players: game.players.map(p => p ? { name: p.name, team: p.team, seat: p.seat } : null)
-  })
-
-  // If we have 4 players, start a new hand immediately
-  if (game.players.length === 4) {
-    startNewHand()
-  }
 }
 
 function startNewHand () {

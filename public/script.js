@@ -569,6 +569,58 @@ socket.on('hideHandResultModal', () => {
   modal.classList.add('hidden')
 })
 
+socket.on('gameEnded', () => {
+  // Clear session from localStorage
+  localStorage.removeItem('cinchSession')
+  sessionId = null
+
+  // Reset all local game state
+  playerPosition = -1
+  playerNames.fill('')
+  playerTeams.fill(0)
+  currentPlayer = -1
+  selectedCards = []
+  currentTrumpSuit = null
+
+  // Clear all UI elements
+  handDiv.innerHTML = ''
+  playedDiv.innerHTML = ''
+  scoreDiv.innerText = 'Blue Team: 0 | Red Team: 0'
+  auditContent.innerHTML = ''
+
+  // Hide all action areas and modals
+  biddingDiv.classList.add('hidden')
+  chooseTrumpDiv.classList.add('hidden')
+  discardingDiv.classList.add('hidden')
+  nextHandBtn.style.display = 'none'
+  playMessage.classList.add('hidden')
+  followSuitMessage.classList.add('hidden')
+
+  // Hide trump and bid displays
+  trumpDisplay.style.display = 'none'
+  bidDisplay.style.display = 'none'
+  currentBidSpan.innerText = '-'
+  currentBidSpan.style.color = '#ffeb3b'
+  trumpSuitSpan.innerText = ''
+
+  // Hide all modals
+  const handResultModal = document.getElementById('handResultModal')
+  handResultModal.classList.add('hidden')
+  const endGameModal = document.getElementById('endGameModal')
+  endGameModal.classList.add('hidden')
+
+  // Show login form and hide game UI
+  joinForm.style.display = 'flex'
+  gameUI.classList.add('hidden')
+
+  // Clear player name input
+  playerNameInput.value = ''
+  playerNameSpan.textContent = ''
+
+  // Close game log panel
+  gameLogPanel.classList.add('hidden')
+})
+
 // Close game log menu when clicking outside
 document.addEventListener('click', function (event) {
   const gameLogMenu = document.querySelector('.game-log-menu')
