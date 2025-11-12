@@ -255,25 +255,22 @@ describe('CinchGame Class', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
+    game.startNewHand() // Sets dealer to 0, bidding starts with player 1
 
-    const player0 = game.players[0] // Team 1
+    const player1 = game.players[1] // Team 2, current bidder
+    const player0 = game.players[0] // Team 1, dealer
 
-    // Player 0 bids cinch early
-    let result = game.processBid(player0, 'cinch')
+    // Player 1 bids cinch - dealer (player 0, team 1) can override
+    let result = game.processBid(player1, 'cinch')
 
     assert.strictEqual(result.finished, false)
     assert.strictEqual(result.cinchOverride, true)
     assert.strictEqual(result.cinchOffered, true)
-    assert.strictEqual(game.cinchBidder, player0)
+    assert.strictEqual(game.cinchBidder, player1)
     assert.strictEqual(game.cinchOverridePhase, true)
 
-    // Opposing team member (player 1, team 2) passes
-    result = game.processBid(game.players[1], 'pass')
-    assert.strictEqual(result.finished, false)
-    assert.strictEqual(result.cinchOverride, true)
-
-    // Second opposing team member (player 3, team 2) passes
-    result = game.processBid(game.players[3], 'pass')
+    // Dealer (player 0, team 1) passes
+    result = game.processBid(player0, 'pass')
     assert.strictEqual(result.finished, true)
     assert.strictEqual(result.overrideSuccessful, false)
   })
@@ -282,20 +279,21 @@ describe('CinchGame Class', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
+    game.startNewHand() // Sets dealer to 0, bidding starts with player 1
 
-    const player0 = game.players[0] // Team 1
+    const player0 = game.players[0] // Team 1, dealer
     const player1 = game.players[1] // Team 2
 
-    // Player 0 bids cinch
-    game.processBid(player0, 'cinch')
+    // Player 1 bids cinch - dealer (player 0) can override
+    game.processBid(player1, 'cinch')
 
-    // Player 1 overrides with cinch
-    const result = game.processBid(player1, 'cinch')
+    // Dealer (player 0) overrides with cinch
+    const result = game.processBid(player0, 'cinch')
 
     assert.strictEqual(result.finished, true)
     assert.strictEqual(result.overrideSuccessful, true)
-    assert.strictEqual(game.highestBidder, player1)
-    assert.strictEqual(game.cinchBidder, player1)
+    assert.strictEqual(game.highestBidder, player0)
+    assert.strictEqual(game.cinchBidder, player0)
   })
 
   test('should validate card play', () => {
@@ -681,22 +679,22 @@ describe('CinchGame Class', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
-    game.startNewHand()
+    game.startNewHand() // Dealer is 0 (team 1), bidding starts with player 1
 
-    // Player 0 (team 1) bids 2
-    game.processBid(game.players[0], '2')
+    // Player 1 (team 2) bids 2
+    game.processBid(game.players[1], '2')
 
-    // Player 1 (team 2) bids 3
-    game.processBid(game.players[1], '3')
+    // Player 2 (team 1) bids 3
+    game.processBid(game.players[2], '3')
 
-    // Player 2 (team 1) bids cinch - should trigger override phase
-    let result = game.processBid(game.players[2], 'cinch')
+    // Player 3 (team 2) bids cinch - dealer (player 0, team 1) can counter
+    let result = game.processBid(game.players[3], 'cinch')
     assert.strictEqual(result.finished, false)
     assert.strictEqual(result.cinchOverride, true)
     assert.strictEqual(result.cinchOffered, true)
 
-    // Player 3 (team 2) hasn't bid yet, so should be able to counter cinch
-    result = game.processBid(game.players[3], 'cinch')
+    // Dealer (player 0, team 1) hasn't bid yet, so should be able to counter cinch
+    result = game.processBid(game.players[0], 'cinch')
     assert.strictEqual(result.finished, true)
     assert.strictEqual(result.overrideSuccessful, true)
 
@@ -705,47 +703,45 @@ describe('CinchGame Class', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
-    game.startNewHand()
+    game.startNewHand() // Dealer is 0 (team 1)
 
-    // Player 0 (team 1) bids 2
+    // Player 0 (dealer, team 1) bids 2 first
     game.processBid(game.players[0], '2')
 
-    // Player 1 (team 2) bids cinch - should trigger override phase
+    // Player 1 (team 2) bids cinch - should not trigger override since dealer already bid
     result = game.processBid(game.players[1], 'cinch')
-    assert.strictEqual(result.finished, false)
-    assert.strictEqual(result.cinchOverride, true)
+    assert.strictEqual(result.finished, true)
+    assert.strictEqual(result.cinchOverride, undefined)
 
     // Manually test what happens if player 0 (who already bid) tries to counter
     // This simulates the restriction - we need to manually check the playersBid set
     assert.strictEqual(game.playersBid.has(game.players[0].seat), true)
 
-    // Only player 2 and 3 from team 1 should be eligible to counter
+    // Only the dealer can counter, and since dealer already bid, no eligible players
     const eligiblePlayers = game.getEligibleOpposingPlayers()
-    assert.strictEqual(eligiblePlayers.length, 1) // Only player 2 from team 1
-    assert.strictEqual(eligiblePlayers[0].seat, 2)
+    assert.strictEqual(eligiblePlayers.length, 0) // Dealer already bid
   })
 
   test('should clear cinch override state between hands', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
-    game.startNewHand()
+    game.startNewHand() // Dealer is 0 (team 1), bidding starts with player 1
 
-    // Player 0 bids cinch, triggering override phase
-    let result = game.processBid(game.players[0], 'cinch')
+    // Player 1 bids cinch, dealer (player 0) can override
+    let result = game.processBid(game.players[1], 'cinch')
     assert.strictEqual(result.finished, false)
     assert.strictEqual(result.cinchOverride, true)
     assert.strictEqual(game.cinchOverridePhase, true)
     assert.strictEqual(game.overrideAttempts, 0)
 
-    // Player 1 passes (no counter)
-    result = game.processBid(game.players[1], 'pass')
+    // Dealer (player 0) passes (no counter)
+    result = game.processBid(game.players[0], 'pass')
 
     // Verify override state is cleared when finished
-    if (result.finished) {
-      assert.strictEqual(game.cinchOverridePhase, false)
-      assert.strictEqual(game.overrideAttempts, 0)
-    }
+    assert.strictEqual(result.finished, true)
+    assert.strictEqual(game.cinchOverridePhase, false)
+    assert.strictEqual(game.overrideAttempts, 0)
 
     // Start a new hand - override state should definitely be cleared
     game.startNewHand()
@@ -878,78 +874,70 @@ describe('CinchGame Class', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
+    game.startNewHand() // Dealer is 0 (team 1), bidding starts with player 1
 
-    const player0 = game.players[0] // Team 1
+    const player0 = game.players[0] // Team 1, dealer
     const player1 = game.players[1] // Team 2
 
-    // Player 1 makes a normal bid first
-    game.processBid(player1, '2')
-    assert.ok(game.playersBid.has(player1.seat))
+    // Player 0 (dealer) makes a normal bid first
+    game.processBid(player0, '2')
+    assert.ok(game.playersBid.has(player0.seat))
 
-    // Player 0 bids cinch, triggering override phase
-    let result = game.processBid(player0, 'cinch')
-    assert.strictEqual(result.cinchOverride, true)
-    assert.strictEqual(game.cinchOverridePhase, true)
+    // Player 1 bids cinch - dealer already bid, so no override offered
+    const result = game.processBid(player1, 'cinch')
+    assert.strictEqual(result.cinchOverride, undefined)
+    assert.strictEqual(result.finished, true)
 
-    // Player 1 (who already bid) tries to counter cinch - should be rejected
-    result = game.processBid(player1, 'cinch')
-    assert.strictEqual(result.finished, false)
-    assert.strictEqual(result.cinchOverride, true)
-    assert.strictEqual(result.error, 'Player has already bid this hand')
-
-    // The original cinch bidder should remain unchanged
-    assert.strictEqual(game.cinchBidder, player0)
-    assert.strictEqual(game.highestBidder, player0)
+    // The cinch bidder should be player 1
+    assert.strictEqual(game.cinchBidder, player1)
+    assert.strictEqual(game.highestBidder, player1)
   })
 
   test('should handle cinch with no eligible opposing players', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
+    game.startNewHand() // Dealer is 0 (team 1), bidding starts with player 1
 
-    const player0 = game.players[0] // Team 1
+    const player0 = game.players[0] // Team 1, dealer
     const player1 = game.players[1] // Team 2
-    const player3 = game.players[3] // Team 2
 
-    // Both opposing team members bid first
-    game.processBid(player1, '2')
-    game.processBid(player3, 'pass') // Pass still counts as having bid
+    // Dealer (player 0) bids first
+    game.processBid(player0, '2')
 
-    // Verify both opposing players have bid
-    assert.ok(game.playersBid.has(player1.seat))
-    assert.ok(game.playersBid.has(player3.seat))
+    // Verify dealer has bid
+    assert.ok(game.playersBid.has(player0.seat))
 
-    // Player 0 bids cinch - should not trigger override since no eligible opposing players
-    const result = game.processBid(player0, 'cinch')
+    // Player 1 bids cinch - dealer already bid, so no override offered
+    const result = game.processBid(player1, 'cinch')
 
     assert.strictEqual(result.finished, true)
     assert.strictEqual(result.cinchOverride, undefined) // No override offered
     assert.strictEqual(game.phase, 'chooseTrump')
     assert.strictEqual(game.cinchOverridePhase, false)
-    assert.strictEqual(game.cinchBidder, player0)
-    assert.strictEqual(game.highestBidder, player0)
+    assert.strictEqual(game.cinchBidder, player1)
+    assert.strictEqual(game.highestBidder, player1)
   })
 
   test('should handle findNextEligibleOpposingTeamMember with no eligible players', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)
     }
+    game.startNewHand() // Dealer is 0 (team 1)
 
-    const player0 = game.players[0] // Team 1
+    const player0 = game.players[0] // Team 1, dealer
     const player1 = game.players[1] // Team 2
-    const player3 = game.players[3] // Team 2
 
-    // Mark all opposing team members as having bid
-    game.playersBid.add(player1.seat)
-    game.playersBid.add(player3.seat)
+    // Mark dealer as having bid
+    game.playersBid.add(player0.seat)
 
-    // Set up cinch override phase
+    // Set up cinch override phase with player 1 as cinch bidder
     game.cinchOverridePhase = true
-    game.cinchBidder = player0
+    game.cinchBidder = player1
     game.currentPlayer = 1
 
     // Call findNextEligibleOpposingTeamMember when no players are eligible
-    // This should return early without changing currentPlayer
+    // Since dealer already bid, this should return early without changing currentPlayer
     const originalCurrentPlayer = game.currentPlayer
     game.findNextEligibleOpposingTeamMember()
 
