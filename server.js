@@ -45,6 +45,39 @@ io.on('connection', socket => {
       startNewHand()
     }
   })
+  socket.on('playAgain', () => {
+    if (game.players.length === 4) {
+      io.emit('message', '🔄 Starting a new game...')
+
+      // Preserve players before reset
+      const currentPlayers = [...game.players]
+
+      // Reset game state
+      game.reset()
+
+      // Re-add the same players
+      currentPlayers.forEach(player => {
+        if (player) {
+          const restoredPlayer = game.addPlayer(player.id, player.name)
+          // Restore session ID
+          restoredPlayer.sessionId = player.sessionId
+        }
+      })
+
+      // Emit gameReset to clear client UI states
+      io.emit('gameReset')
+
+      // Broadcast updated player list to all clients
+      io.emit('playerJoined', {
+        players: game.players.map(p => p ? { name: p.name, team: p.team, seat: p.seat } : null)
+      })
+
+      // Start new hand
+      if (game.players.length === 4) {
+        startNewHand()
+      }
+    }
+  })
   socket.on('endGame', () => {
     io.emit('message', '🔄 Game ended by player request. Returning to login...')
     // Clear all game state and send players back to login
@@ -429,15 +462,12 @@ function performScoring () {
         winningTeam,
         finalScores: { team1: game.scores.team1, team2: game.scores.team2 }
       })
-    } else {
-      // Tie at 21 or higher
-      io.emit('message', `🎉 GAME OVER! It's a tie at ${game.scores.team1} points each!`)
-      io.emit('gameOver', {
-        winningTeam: null,
-        finalScores: { team1: game.scores.team1, team2: game.scores.team2 }
-      })
     }
   } else {
+    // Check if we're in a tie situation at 21+
+    if ((game.scores.team1 >= 21 || game.scores.team2 >= 21) && game.scores.team1 === game.scores.team2) {
+      io.emit('message', `⚖️ TIED at ${game.scores.team1} points! Game continues until one team breaks the tie.`)
+    }
     io.emit('message', `🏁 Hand over. Blue Team: ${game.scores.team1}, Red Team: ${game.scores.team2}`)
   }
 }

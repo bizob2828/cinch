@@ -188,6 +188,15 @@ function nextHandFromModal () {
   nextHandBtn.style.display = 'none'
 }
 
+function playAgain () {
+  // Hide the modal first
+  const modal = document.getElementById('handResultModal')
+  modal.classList.add('hidden')
+
+  // Emit playAgain event to server to restart game
+  socket.emit('playAgain')
+}
+
 function endGame () {
   // Show the confirmation modal
   const modal = document.getElementById('endGameModal')
@@ -288,6 +297,13 @@ socket.on('yourHand', cards => {
   handDiv.querySelectorAll('.card').forEach(cardDiv => {
     cardDiv.onclick = null // Clear previous onclicks
   })
+
+  // Hide the hand div when player has no cards
+  if (cards.length === 0) {
+    handDiv.style.display = 'none'
+  } else {
+    handDiv.style.display = 'flex'
+  }
 })
 
 socket.on('yourTurn', data => {
@@ -501,8 +517,9 @@ socket.on('message', (msg) => {
   // Don't clear cards when trick wins - keep them visible until next hand
   if (msg.includes('Hand over')) {
     // Show winning team modal - parse from Blue Team/Red Team format
-    const blueScore = parseInt(msg.match(/Blue Team: (\d+)/)[1])
-    const redScore = parseInt(msg.match(/Red Team: (\d+)/)[1])
+    // Use -?\d+ to match negative numbers as well
+    const blueScore = parseInt(msg.match(/Blue Team: (-?\d+)/)[1])
+    const redScore = parseInt(msg.match(/Red Team: (-?\d+)/)[1])
     showWinningModal(blueScore > redScore ? 1 : redScore > blueScore ? 2 : 0, blueScore, redScore)
   }
 })
@@ -529,12 +546,19 @@ socket.on('gameOver', (data) => {
   // Hide the "Next Hand" button since the game is over
   nextHandBtn.style.display = 'none'
 
-  // Don't auto-hide the modal for game over
+  // Change the modal button to "Play Again"
+  const modalButton = modal.querySelector('.modal-next-hand-btn')
+  if (modalButton) {
+    modalButton.textContent = 'Play Again'
+    modalButton.onclick = playAgain
+    modalButton.style.display = 'block'
+  }
 })
 
 socket.on('gameReset', () => {
   // Reset all UI elements to initial state
   handDiv.innerHTML = ''
+  handDiv.style.display = 'none'
   playedDiv.innerHTML = ''
   scoreDiv.innerText = 'Blue Team: 0 | Red Team: 0'
 
@@ -551,9 +575,15 @@ socket.on('gameReset', () => {
   currentBidSpan.style.color = '#ffeb3b'
   trumpSuitSpan.innerText = ''
 
-  // Hide hand result modal
+  // Hide hand result modal and restore the button for normal hands
   const modal = document.getElementById('handResultModal')
   modal.classList.add('hidden')
+  const modalButton = modal.querySelector('.modal-next-hand-btn')
+  if (modalButton) {
+    modalButton.textContent = 'Play Next Hand' // Restore normal text
+    modalButton.onclick = nextHandFromModal // Restore normal handler
+    modalButton.style.display = 'block' // Restore button
+  }
 
   // Reset game state but keep player position info (will be updated by playerJoined event)
   selectedCards = []
@@ -584,6 +614,7 @@ socket.on('gameEnded', () => {
 
   // Clear all UI elements
   handDiv.innerHTML = ''
+  handDiv.style.display = 'none'
   playedDiv.innerHTML = ''
   scoreDiv.innerText = 'Blue Team: 0 | Red Team: 0'
   auditContent.innerHTML = ''

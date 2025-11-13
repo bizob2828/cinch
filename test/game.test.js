@@ -777,10 +777,10 @@ describe('CinchGame Class', () => {
     assert.strictEqual(game.isGameComplete(), true)
     assert.strictEqual(game.getWinningTeam(), 2)
 
-    // Test tie at 21
+    // Test tie at 21 - game should continue
     game.scores.team1 = 21
     game.scores.team2 = 21
-    assert.strictEqual(game.isGameComplete(), true)
+    assert.strictEqual(game.isGameComplete(), false)
     assert.strictEqual(game.getWinningTeam(), null)
 
     // Test higher score wins when both over 21
@@ -788,6 +788,12 @@ describe('CinchGame Class', () => {
     game.scores.team2 = 21
     assert.strictEqual(game.isGameComplete(), true)
     assert.strictEqual(game.getWinningTeam(), 1)
+
+    // Test tie at 23 - game should still continue
+    game.scores.team1 = 23
+    game.scores.team2 = 23
+    assert.strictEqual(game.isGameComplete(), false)
+    assert.strictEqual(game.getWinningTeam(), null)
   })
 
   test('should handle game reset properly', () => {
