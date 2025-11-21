@@ -100,8 +100,8 @@ body {
 
 .game-table {
   position: relative;
-  width: 800px;
-  height: 600px;
+  width: 600px;
+  height: 450px;
   background: radial-gradient(ellipse at center, #228B22 0%, #006400 100%);
   border: 20px solid #8B4513;
   border-radius: 50%;
@@ -207,7 +207,7 @@ body {
 /* Play Turn Message */
 .play-message {
   position: fixed;
-  bottom: 320px;
+  bottom: 140px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(76, 175, 80, 0.95);
@@ -229,7 +229,7 @@ body {
 /* Follow Suit Message */
 .follow-suit-message {
   position: fixed;
-  bottom: 280px;
+  bottom: 180px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(211, 47, 47, 0.95);
@@ -268,7 +268,7 @@ body {
 /* Player's hand */
 .player-hand {
   position: fixed;
-  bottom: 200px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
