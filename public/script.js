@@ -22,7 +22,6 @@ window.addEventListener('DOMContentLoaded', () => {
       // Attempt to rejoin with saved session
       socket.emit('rejoinGame', session)
     } catch (e) {
-      console.error('Failed to parse saved session', e)
       localStorage.removeItem('cinchSession')
     }
   }
@@ -307,7 +306,6 @@ socket.on('yourHand', cards => {
 })
 
 socket.on('yourTurn', data => {
-  console.log('your turn', data)
   currentPlayer = data.currentPlayer
   updatePlayerPositions()
 
@@ -358,7 +356,6 @@ socket.on('yourTurn', data => {
 })
 
 socket.on('chooseTrump', suits => {
-  console.log('choose trump', suits)
   playMessage.classList.add('hidden')
   chooseTrumpDiv.classList.remove('hidden')
 })
@@ -390,7 +387,6 @@ function finishDiscarding () {
 }
 
 socket.on('discardPhase', data => {
-  console.log('discard phase', data)
   selectedCards = [...data.nonTrumpIndices] // Start with all non-trump cards selected
   discardingDiv.classList.remove('hidden')
 

@@ -92,4 +92,40 @@ describe('Hand Class', () => {
     assert.deepStrictEqual(array[0], { suit: '♥', rank: 'A' })
     assert.deepStrictEqual(array[1], { suit: '♠', rank: 'K' })
   })
+
+  test('should sort cards by suit and rank', () => {
+    // Add cards in random order
+    const cards = [
+      new Card('♠', 'K'), // Spades King
+      new Card('♥', '2'), // Hearts 2
+      new Card('♦', 'A'), // Diamonds Ace
+      new Card('♥', 'A'), // Hearts Ace
+      new Card('♣', '5'), // Clubs 5
+      new Card('♠', '3'), // Spades 3
+      new Card('♦', '7'), // Diamonds 7
+      new Card('♣', 'Q') // Clubs Queen
+    ]
+    hand.addCards(cards)
+
+    hand.sort()
+
+    // Expected order: suits (♥, ♦, ♣, ♠), then ranks (A-2)
+    const sorted = hand.cards
+    assert.strictEqual(sorted[0].suit, '♥')
+    assert.strictEqual(sorted[0].rank, 'A')
+    assert.strictEqual(sorted[1].suit, '♥')
+    assert.strictEqual(sorted[1].rank, '2')
+    assert.strictEqual(sorted[2].suit, '♦')
+    assert.strictEqual(sorted[2].rank, 'A')
+    assert.strictEqual(sorted[3].suit, '♦')
+    assert.strictEqual(sorted[3].rank, '7')
+    assert.strictEqual(sorted[4].suit, '♣')
+    assert.strictEqual(sorted[4].rank, 'Q')
+    assert.strictEqual(sorted[5].suit, '♣')
+    assert.strictEqual(sorted[5].rank, '5')
+    assert.strictEqual(sorted[6].suit, '♠')
+    assert.strictEqual(sorted[6].rank, 'K')
+    assert.strictEqual(sorted[7].suit, '♠')
+    assert.strictEqual(sorted[7].rank, '3')
+  })
 })
