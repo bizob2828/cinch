@@ -551,91 +551,352 @@ body {
   border-bottom: none;
 }
 
+/* Responsive adjustments for tablets */
+@media (max-width: 1024px) {
+  .game-table {
+    width: 600px;
+    height: 450px;
+    border: 15px solid #8B4513;
+  }
+
+  .table-container {
+    padding-top: 80px;
+  }
+}
+
 /* Responsive adjustments for mobile */
 @media (max-width: 768px) {
+  body {
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .table-container {
+    padding-top: 70px;
+  }
+
+  .game-table {
+    width: 90vw;
+    max-width: 500px;
+    height: calc(90vw * 0.75);
+    max-height: 375px;
+    border: 10px solid #8B4513;
+  }
+
+  .player-north {
+    top: -60px;
+  }
+
+  .player-south {
+    bottom: -60px;
+  }
+
+  .player-east {
+    right: -90px;
+  }
+
+  .player-west {
+    left: -90px;
+  }
+
+  .player-name {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .table-center {
+    width: 200px;
+    height: 150px;
+  }
+
+  .played-card {
+    width: 40px;
+    height: 56px;
+    font-size: 12px;
+  }
+
+  .played-card[data-position="0"] { top: -65px; }
+  .played-card[data-position="1"] { right: -60px; }
+  .played-card[data-position="2"] { bottom: -65px; }
+  .played-card[data-position="3"] { left: -60px; }
+
+  .card {
+    width: 50px;
+    height: 70px;
+    font-size: 14px;
+  }
+
   .player-hand {
-    bottom: 180px;
+    bottom: 140px;
     padding: 10px 15px;
     gap: 4px;
+    max-width: 95vw;
+    overflow-x: auto;
   }
-  
+
   .play-message {
-    bottom: 290px;
+    bottom: 230px;
     padding: 10px 25px;
     font-size: 16px;
   }
-  
+
   .follow-suit-message {
-    bottom: 250px;
+    bottom: 190px;
     padding: 10px 25px;
     font-size: 16px;
   }
-  
+
   .game-log-menu {
     top: 70px;
     left: 10px;
   }
-  
+
   .game-log-toggle {
     padding: 8px 12px;
     font-size: 12px;
   }
-  
+
   .log-icon {
     font-size: 16px;
   }
-  
+
   .game-log-panel {
     width: 300px;
     max-height: 400px;
   }
-  
+
   .log-panel-content {
     max-height: 350px;
+    font-size: 13px;
+  }
+
+  .action-area {
+    min-width: 280px;
+    max-width: 90vw;
+    padding: 20px;
+  }
+
+  .action-area h3 {
+    font-size: 1.3em;
+  }
+
+  .action-buttons {
+    gap: 8px;
+  }
+
+  .action-button {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: 70px;
+  }
+
+  .end-game-btn {
+    bottom: 15px;
+    left: 15px;
+    padding: 12px 20px;
+    font-size: 14px;
   }
 }
 
 @media (max-width: 480px) {
+  .table-container {
+    padding-top: 60px;
+  }
+
+  .game-table {
+    width: 95vw;
+    max-width: 400px;
+    height: calc(95vw * 0.75);
+    max-height: 300px;
+    border: 8px solid #8B4513;
+  }
+
+  .player-north {
+    top: -50px;
+  }
+
+  .player-south {
+    bottom: -50px;
+  }
+
+  .player-east {
+    right: -70px;
+  }
+
+  .player-west {
+    left: -70px;
+  }
+
+  .player-name {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+
+  .table-center {
+    width: 160px;
+    height: 120px;
+  }
+
+  .played-card {
+    width: 35px;
+    height: 49px;
+    font-size: 11px;
+  }
+
+  .played-card[data-position="0"] { top: -55px; }
+  .played-card[data-position="1"] { right: -50px; }
+  .played-card[data-position="2"] { bottom: -55px; }
+  .played-card[data-position="3"] { left: -50px; }
+
+  .card {
+    width: 42px;
+    height: 58px;
+    font-size: 12px;
+  }
+
   .player-hand {
-    bottom: 160px;
-    padding: 8px 12px;
+    bottom: 120px;
+    padding: 8px 10px;
     gap: 3px;
+    max-width: 98vw;
   }
-  
+
   .play-message {
-    bottom: 260px;
+    bottom: 200px;
     padding: 8px 20px;
     font-size: 14px;
   }
-  
+
   .follow-suit-message {
-    bottom: 220px;
+    bottom: 160px;
     padding: 8px 20px;
     font-size: 14px;
   }
-  
+
   .game-log-menu {
     top: 60px;
     left: 5px;
   }
-  
+
   .game-log-toggle {
     padding: 6px 10px;
     font-size: 11px;
   }
-  
+
   .log-icon {
     font-size: 14px;
   }
-  
+
   .game-log-panel {
     width: calc(100vw - 20px);
     max-height: 300px;
   }
-  
+
   .log-panel-content {
     max-height: 250px;
     padding: 10px;
+    font-size: 12px;
+  }
+
+  .action-area {
+    min-width: 260px;
+    max-width: 95vw;
+    padding: 15px;
+  }
+
+  .action-area h3 {
+    font-size: 1.2em;
+    margin: 0 0 10px 0;
+  }
+
+  .action-area p {
+    font-size: 0.95em;
+    margin: 10px 0;
+  }
+
+  .action-buttons {
+    gap: 6px;
+  }
+
+  .action-button {
+    padding: 8px 12px;
+    font-size: 13px;
+    min-width: 60px;
+  }
+
+  .trump-button {
+    font-size: 18px;
+    min-width: 50px;
+  }
+
+  .modal-content {
+    padding: 25px;
+    max-width: 90vw;
+  }
+
+  .hand-result-modal h2 {
+    font-size: 1.8em;
+    margin-bottom: 20px;
+  }
+
+  .score-display {
+    flex-direction: column;
+    gap: 15px;
+    font-size: 1.2em;
+  }
+
+  .team-score {
+    padding: 15px;
+    min-width: 100px;
+  }
+
+  .score {
+    font-size: 1.8em;
+  }
+
+  .modal-next-hand-btn {
+    padding: 12px 30px;
+    font-size: 1em;
+  }
+
+  .confirm-modal-content {
+    padding: 25px;
+    max-width: 90vw;
+  }
+
+  .confirm-modal-content h2 {
+    font-size: 1.5em;
+  }
+
+  .confirm-modal-content p {
+    font-size: 1em;
+  }
+
+  .join-form {
+    padding: 25px;
+    max-width: 90vw;
+  }
+
+  .join-form h1 {
+    font-size: 2em;
+  }
+
+  .join-form input {
+    font-size: 16px;
+    min-width: 150px;
+    margin-bottom: 10px;
+  }
+
+  .join-form button {
+    font-size: 16px;
+    width: 100%;
+  }
+
+  .end-game-btn {
+    bottom: 10px;
+    left: 10px;
+    padding: 10px 15px;
+    font-size: 12px;
   }
 }
 
