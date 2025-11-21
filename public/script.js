@@ -38,7 +38,6 @@ const trumpDisplay = document.getElementById('trumpDisplay')
 const trumpSuitSpan = document.getElementById('trumpSuit')
 const bidDisplay = document.getElementById('bidDisplay')
 const currentBidSpan = document.getElementById('currentBid')
-const nextHandBtn = document.getElementById('nextHand')
 const auditContent = document.getElementById('auditContent')
 const playerNameSpan = document.getElementById('playerName')
 const playMessage = document.getElementById('playMessage')
@@ -168,25 +167,15 @@ function chooseTrump (suit) {
   chooseTrumpDiv.classList.add('hidden')
 }
 
-function nextHand () {
-  playedDiv.innerHTML = ''
-  trumpDisplay.style.display = 'none'
-  socket.emit('nextHand')
-  nextHandBtn.style.display = 'none'
-}
-
 function nextHandFromModal () {
   // Hide the modal first
   const modal = document.getElementById('handResultModal')
   modal.classList.add('hidden')
-
   // Then trigger next hand
   playedDiv.innerHTML = ''
   trumpDisplay.style.display = 'none'
   socket.emit('nextHand')
-  nextHandBtn.style.display = 'none'
 }
-
 function playAgain () {
   // Hide the modal first
   const modal = document.getElementById('handResultModal')
@@ -264,7 +253,6 @@ socket.on('rejoinSuccess', ({ team, name, position }) => {
   biddingDiv.classList.add('hidden')
   chooseTrumpDiv.classList.add('hidden')
   discardingDiv.classList.add('hidden')
-  nextHandBtn.style.display = 'none'
 
   addAuditMessage('Reconnected to game!')
 })
@@ -312,7 +300,6 @@ socket.on('yourTurn', data => {
   biddingDiv.classList.add('hidden')
   chooseTrumpDiv.classList.add('hidden')
   discardingDiv.classList.add('hidden')
-  nextHandBtn.style.display = 'none'
 
   if (data.phase === 'bidding') {
     if (data.cinchOverride) {
@@ -342,6 +329,11 @@ socket.on('yourTurn', data => {
     // Show play message
     playMessageText.textContent = 'Your turn to play a card!'
     playMessage.classList.remove('hidden')
+
+    // Display current trick cards (if any cards have been played in current trick)
+    if (data.played && data.played.length > 0) {
+      displayPlayedCards(data.played)
+    }
 
     handDiv.querySelectorAll('.card').forEach(cardDiv => {
       cardDiv.onclick = () => {
@@ -437,7 +429,6 @@ socket.on('trickPlayed', ({ trickPlays, winner }) => {
 
 socket.on('scoreUpdate', scores => {
   scoreDiv.innerText = `Blue Team: ${scores.team1} | Red Team: ${scores.team2}`
-  nextHandBtn.style.display = 'block'
 })
 
 socket.on('trumpSelected', suit => {
@@ -474,13 +465,14 @@ socket.on('bidUpdate', ({ currentBid, highestBidder, bidContract, bidderTeam }) 
 })
 
 socket.on('trumpCleared', () => {
+  // Clear played cards when starting new hand
+  playedDiv.innerHTML = ''
   currentTrumpSuit = null
   trumpDisplay.style.display = 'none'
   trumpSuitSpan.innerText = ''
   bidDisplay.style.display = 'none'
   currentBidSpan.innerText = '-'
   currentBidSpan.style.color = '#ffeb3b' // Reset to default
-  nextHandBtn.style.display = 'none' // Hide Next Hand button when new hand starts
 })
 
 socket.on('handStarted', ({ dealer }) => {
@@ -539,9 +531,6 @@ socket.on('gameOver', (data) => {
 
   modal.classList.remove('hidden')
 
-  // Hide the "Next Hand" button since the game is over
-  nextHandBtn.style.display = 'none'
-
   // Change the modal button to "Play Again"
   const modalButton = modal.querySelector('.modal-next-hand-btn')
   if (modalButton) {
@@ -562,7 +551,6 @@ socket.on('gameReset', () => {
   biddingDiv.classList.add('hidden')
   chooseTrumpDiv.classList.add('hidden')
   discardingDiv.classList.add('hidden')
-  nextHandBtn.style.display = 'none'
 
   // Hide trump and bid displays
   trumpDisplay.style.display = 'none'
@@ -619,7 +607,6 @@ socket.on('gameEnded', () => {
   biddingDiv.classList.add('hidden')
   chooseTrumpDiv.classList.add('hidden')
   discardingDiv.classList.add('hidden')
-  nextHandBtn.style.display = 'none'
   playMessage.classList.add('hidden')
   followSuitMessage.classList.add('hidden')
 

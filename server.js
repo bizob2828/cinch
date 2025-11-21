@@ -3,7 +3,7 @@ import express from 'express'
 import http from 'http'
 import { Server } from 'socket.io'
 import { CinchGame } from './lib/game.js'
-import { SUITS, BID_VALUES } from './lib/constants.js'
+import { SUITS, BID_VALUES, TRICK_DISPLAY_DELAY } from './lib/constants.js'
 const origin = process.env.ORIGIN || 'http://localhost:3000'
 
 const app = express()
@@ -40,7 +40,6 @@ io.on('connection', socket => {
   socket.on('playCard', index => handlePlay(socket, index))
   socket.on('nextHand', () => {
     if (game.players.length === 4) {
-      // Hide modal for all players before starting new hand
       io.emit('hideHandResultModal')
       startNewHand()
     }
@@ -316,11 +315,23 @@ function handleTrump (socket, suit) {
   // Ask all players to discard non-trump cards
   for (const p of game.players) {
     const nonTrumpIndices = p.hand.getNonTrumpIndices(game.trumpSuit)
-    io.to(p.id).emit('discardPhase', {
-      hand: p.hand.toArray(),
-      trumpSuit: game.trumpSuit,
-      nonTrumpIndices
-    })
+
+    // If player has no non-trump cards, automatically mark them as having discarded
+    if (nonTrumpIndices.length === 0) {
+      game.playersDiscarded++
+      io.emit('message', `${p.name} has no non-trump cards to discard.`)
+    } else {
+      io.to(p.id).emit('discardPhase', {
+        hand: p.hand.toArray(),
+        trumpSuit: game.trumpSuit,
+        nonTrumpIndices
+      })
+    }
+  }
+
+  // Check if all players have discarded (in case all had no non-trump cards)
+  if (game.playersDiscarded === 4) {
+    dealNewCards()
   }
 }
 
@@ -379,33 +390,77 @@ function handlePlay (socket, cardIndex) {
     card: { suit: cardToPlay.suit, rank: cardToPlay.rank }
   })
 
-  // Broadcast current trick state to all players
-  io.emit('trickUpdate', {
-    trickPlays: game.trickPlays.map(p => ({
-      player: p.seat,
-      card: { suit: p.card.suit, rank: p.card.rank },
-      name: p.name
-    }))
-  })
-
   io.to(player.id).emit('yourHand', player.hand.toArray())
 
   if (result.trickComplete) {
-    io.emit('message', `🃏 ${result.winner.name} wins the trick.`)
-  }
-
-  if (!game.isHandComplete()) {
-    io.to(game.getCurrentPlayer().id).emit('yourTurn', {
-      phase: 'play',
-      hand: game.getCurrentPlayer().hand.toArray(),
-      played: game.trickPlays.map(p => ({
+    // Broadcast the completed trick to all players (using lastTrickPlays since trickPlays is now empty)
+    io.emit('trickUpdate', {
+      trickPlays: game.lastTrickPlays.map(p => ({
+        player: p.seat,
         card: { suit: p.card.suit, rank: p.card.rank },
         name: p.name
       }))
     })
+
+    io.emit('message', `🃏 ${result.winner.name} wins the trick.`)
+
+    // If hand is complete, broadcast the final trick to keep cards visible
+    if (game.isHandComplete()) {
+      io.emit('trickPlayed', {
+        trickPlays: game.lastTrickPlays.map(p => ({
+          player: p.seat,
+          card: { suit: p.card.suit, rank: p.card.rank },
+          name: p.name
+        })),
+        winner: result.winner
+      })
+    }
+
+    // Delay before continuing to next player or scoring to show the trick cards
+    setTimeout(() => {
+      if (!game.isHandComplete()) {
+        // Clear the trick cards from display
+        io.emit('trickUpdate', { trickPlays: [] })
+
+        io.to(game.getCurrentPlayer().id).emit('yourTurn', {
+          phase: 'play',
+          hand: game.getCurrentPlayer().hand.toArray(),
+          played: game.trickPlays.map(p => ({
+            player: p.seat,
+            card: { suit: p.card.suit, rank: p.card.rank },
+            name: p.name
+          }))
+        })
+      } else {
+        game.phase = 'scoring'
+        performScoring()
+      }
+    }, TRICK_DISPLAY_DELAY)
   } else {
-    game.phase = 'scoring'
-    performScoring()
+    // Broadcast current trick state to all players (trick still in progress)
+    io.emit('trickUpdate', {
+      trickPlays: game.trickPlays.map(p => ({
+        player: p.seat,
+        card: { suit: p.card.suit, rank: p.card.rank },
+        name: p.name
+      }))
+    })
+
+    // If trick is not complete, continue immediately
+    if (!game.isHandComplete()) {
+      io.to(game.getCurrentPlayer().id).emit('yourTurn', {
+        phase: 'play',
+        hand: game.getCurrentPlayer().hand.toArray(),
+        played: game.trickPlays.map(p => ({
+          player: p.seat,
+          card: { suit: p.card.suit, rank: p.card.rank },
+          name: p.name
+        }))
+      })
+    } else {
+      game.phase = 'scoring'
+      performScoring()
+    }
   }
 }
 
