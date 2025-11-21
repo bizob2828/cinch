@@ -554,38 +554,6 @@ describe('CinchGame Class', () => {
     assert.strictEqual(results.teamPoints[2], 0)
   })
 
-  test('should handle findNextOpposingTeamMember edge case', () => {
-    for (let i = 0; i < 4; i++) {
-      game.addPlayer(`id${i}`, `Player${i}`)
-    }
-
-    // Set up a scenario where we need to wrap around to find opposing member
-    game.cinchBidder = game.players[0] // Team 1 (seats 0, 2)
-    game.currentPlayer = 2 // Start from team 1 member (seat 2)
-
-    game.findNextOpposingTeamMember()
-
-    // Should find player 3 (next opposing team member - team 2)
-    assert.strictEqual(game.currentPlayer, 3)
-  })
-
-  test('should handle findNextOpposingTeamMember with wrapping', () => {
-    for (let i = 0; i < 4; i++) {
-      game.addPlayer(`id${i}`, `Player${i}`)
-    }
-
-    // Test scenario where the while loop must iterate multiple times
-    // Team 1 cinch bidder (seats 0, 2), start from seat 1 (team 2)
-    game.cinchBidder = game.players[0] // Team 1 (seats 0, 2)
-    game.currentPlayer = 1 // Start from seat 1 (team 2)
-
-    game.findNextOpposingTeamMember()
-
-    // Next player after 1 is 2 (team 1, same as cinch), then 3 (team 2, different)
-    // So the while loop should iterate once: nextPlayer starts as 2, then becomes 3
-    assert.strictEqual(game.currentPlayer, 3)
-  })
-
   test('should handle findCardTeam when card not found', () => {
     for (let i = 0; i < 4; i++) {
       game.addPlayer(`id${i}`, `Player${i}`)

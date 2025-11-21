@@ -43,7 +43,6 @@ const playerNameSpan = document.getElementById('playerName')
 const playMessage = document.getElementById('playMessage')
 const playMessageText = document.getElementById('playMessageText')
 const followSuitMessage = document.getElementById('followSuitMessage')
-const followSuitMessageText = document.getElementById('followSuitMessageText')
 const gameLogPanel = document.getElementById('gameLogPanel')
 
 function showFollowSuitMessage () {
@@ -145,7 +144,6 @@ playerNameInput.addEventListener('keypress', (event) => {
 })
 
 let selectedCards = []
-let currentTrumpSuit = null
 
 // Helper function to get team color name
 function getTeamName (teamNumber) {
@@ -240,7 +238,7 @@ socket.on('welcome', ({ team, name, position }) => {
   gameUI.classList.remove('hidden')
 })
 
-socket.on('rejoinSuccess', ({ team, name, position }) => {
+socket.on('rejoinSuccess', ({ name, position }) => {
   playerPosition = position
   playerNameSpan.textContent = name
   updatePlayerPositions()
@@ -266,7 +264,7 @@ socket.on('rejoinFailed', () => {
 })
 
 socket.on('playerJoined', ({ players }) => {
-  players.forEach((player, index) => {
+  players.forEach((player) => {
     if (player) {
       playerNames[player.seat] = player.name
       playerTeams[player.seat] = player.team
@@ -347,7 +345,7 @@ socket.on('yourTurn', data => {
   }
 })
 
-socket.on('chooseTrump', suits => {
+socket.on('chooseTrump', () => {
   playMessage.classList.add('hidden')
   chooseTrumpDiv.classList.remove('hidden')
 })
@@ -474,7 +472,6 @@ socket.on('scoreUpdate', scores => {
 })
 
 socket.on('trumpSelected', suit => {
-  currentTrumpSuit = suit
   trumpSuitSpan.innerText = suit
   // Add appropriate CSS class for trump suit color
   trumpSuitSpan.classList.remove('red-suit', 'black-suit')
@@ -487,7 +484,7 @@ socket.on('trumpSelected', suit => {
   addAuditMessage(`Trump suit selected: ${suit}`)
 })
 
-socket.on('bidUpdate', ({ currentBid, highestBidder, bidContract, bidderTeam }) => {
+socket.on('bidUpdate', ({ currentBid, bidContract, bidderTeam }) => {
   if (currentBid > 0) {
     currentBidSpan.innerText = bidContract === 11 ? 'Cinch' : bidContract
 
@@ -509,7 +506,6 @@ socket.on('bidUpdate', ({ currentBid, highestBidder, bidContract, bidderTeam }) 
 socket.on('trumpCleared', () => {
   // Clear played cards when starting new hand
   playedDiv.innerHTML = ''
-  currentTrumpSuit = null
   trumpDisplay.style.display = 'none'
   trumpSuitSpan.innerText = ''
   bidDisplay.style.display = 'none'
@@ -613,7 +609,6 @@ socket.on('gameReset', () => {
 
   // Reset game state but keep player position info (will be updated by playerJoined event)
   selectedCards = []
-  currentTrumpSuit = null
   currentPlayer = -1
 
   // Don't reset playerPosition, playerNames, playerTeams here -
@@ -636,7 +631,6 @@ socket.on('gameEnded', () => {
   playerTeams.fill(0)
   currentPlayer = -1
   selectedCards = []
-  currentTrumpSuit = null
 
   // Clear all UI elements
   handDiv.innerHTML = ''
@@ -680,7 +674,6 @@ socket.on('gameEnded', () => {
 // Close game log menu when clicking outside
 document.addEventListener('click', function (event) {
   const gameLogMenu = document.querySelector('.game-log-menu')
-  const gameLogToggle = document.getElementById('gameLogToggle')
 
   if (!gameLogMenu.contains(event.target) && !gameLogPanel.classList.contains('hidden')) {
     gameLogPanel.classList.add('hidden')
