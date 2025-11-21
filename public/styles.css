@@ -378,7 +378,7 @@ body {
 /* Action Areas */
 .action-area {
   position: fixed;
-  top: 50%;
+  top: 30%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(0,0,0,0.95);
@@ -562,6 +562,18 @@ body {
 
   .table-container {
     padding-top: 80px;
+  }
+
+  .player-hand {
+    bottom: 20px;
+  }
+
+  .play-message {
+    bottom: 140px;
+  }
+
+  .follow-suit-message {
+    bottom: 100px;
   }
 }
 
