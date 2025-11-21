@@ -339,6 +339,15 @@ function handleDiscard (socket, indices) {
   const player = game.getPlayer(socket.id)
   if (game.phase !== 'discarding') return
 
+  // Validate that player will have at most 6 cards remaining
+  const currentHandSize = player.hand.size()
+  const cardsToKeep = currentHandSize - indices.length
+
+  if (cardsToKeep > 6) {
+    socket.emit('message', `❌ Invalid discard. You can only keep up to 6 cards (currently keeping ${cardsToKeep}).`)
+    return
+  }
+
   player.discardCards(indices)
 
   game.playersDiscarded++

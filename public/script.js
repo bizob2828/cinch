@@ -353,6 +353,25 @@ socket.on('chooseTrump', suits => {
 })
 
 function finishDiscarding () {
+  const totalCards = handDiv.querySelectorAll('.card').length
+  const cardsToKeep = totalCards - selectedCards.length
+
+  // Validate that no more than 6 cards will remain
+  if (cardsToKeep > 6) {
+    const warningDiv = document.getElementById('discardWarning')
+    if (warningDiv) {
+      warningDiv.textContent = `You can only keep 6 cards (currently keeping ${cardsToKeep})`
+      warningDiv.style.display = 'block'
+    }
+    return
+  }
+
+  // Hide warning if validation passes
+  const warningDiv = document.getElementById('discardWarning')
+  if (warningDiv) {
+    warningDiv.style.display = 'none'
+  }
+
   // Remove discarded cards from UI immediately
   const sortedIndices = selectedCards.sort((a, b) => b - a) // Sort descending to avoid index shifting
   sortedIndices.forEach(index => {
@@ -382,26 +401,49 @@ socket.on('discardPhase', data => {
   selectedCards = [...data.nonTrumpIndices] // Start with all non-trump cards selected
   discardingDiv.classList.remove('hidden')
 
-  // Set up non-trump cards (start selected by default)
+  const totalCards = handDiv.querySelectorAll('.card').length
+  const trumpCount = totalCards - data.nonTrumpIndices.length
+
+  // Update discard message based on hand composition
+  const discardMessage = document.getElementById('discardMessage')
+  if (discardMessage) {
+    if (trumpCount > 6) {
+      discardMessage.textContent = `You have ${trumpCount} trump cards. Select cards to discard (keep up to 6 cards)`
+    } else {
+      discardMessage.textContent = 'Select cards to discard (keep up to 6 cards)'
+    }
+  }
+
+  // Set up all cards to be clickable
   handDiv.querySelectorAll('.card').forEach((cardDiv, index) => {
     cardDiv.classList.remove('selected', 'non-trump', 'unselected-discard')
     cardDiv.onclick = null
 
-    if (data.nonTrumpIndices.includes(index)) {
+    const isNonTrump = data.nonTrumpIndices.includes(index)
+
+    if (isNonTrump) {
       // Non-trump cards start selected (red)
       cardDiv.classList.add('selected')
-      cardDiv.onclick = () => {
-        if (selectedCards.includes(index)) {
-          // Unselect: remove from selectedCards and change to white
-          selectedCards = selectedCards.filter(i => i !== index)
-          cardDiv.classList.remove('selected')
-          cardDiv.classList.add('unselected-discard')
-        } else {
-          // Select: add to selectedCards and change to red
-          selectedCards.push(index)
-          cardDiv.classList.remove('unselected-discard')
-          cardDiv.classList.add('selected')
-        }
+    }
+
+    // Make all cards clickable
+    cardDiv.onclick = () => {
+      // Hide warning when user makes a change
+      const warningDiv = document.getElementById('discardWarning')
+      if (warningDiv) {
+        warningDiv.style.display = 'none'
+      }
+
+      if (selectedCards.includes(index)) {
+        // Unselect: remove from selectedCards and change to white
+        selectedCards = selectedCards.filter(i => i !== index)
+        cardDiv.classList.remove('selected')
+        cardDiv.classList.add('unselected-discard')
+      } else {
+        // Select: add to selectedCards and change to red
+        selectedCards.push(index)
+        cardDiv.classList.remove('unselected-discard')
+        cardDiv.classList.add('selected')
       }
     }
   })

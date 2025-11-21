@@ -90,7 +90,8 @@
 
     <div id="discarding" class="action-area hidden">
       <h3>Discard Phase</h3>
-      <p>Select cards to discard (you must discard down to 6 cards)</p>
+      <p id="discardMessage">Select cards to discard (keep up to 6 cards)</p>
+      <div id="discardWarning" style="display: none; color: #ff4444; font-weight: bold; margin: 10px 0;">You can only keep 6 cards</div>
       <div class="action-buttons">
         <button class="action-button bid-button" onclick="finishDiscarding()">Done Discarding</button>
       </div>
