@@ -20,4 +20,26 @@ npm start
 
 Then open your browser to `http://localhost:3000`. Four players must join to play.
 
+## Development
+
+Add pre-commit hooks:
+
+```sh
+npm run add-precommit
+```
+
+This will register a pre-commit hook to run `lint-staged` before committing.
+
+## Testing
+
+```sh
+npm test
+```
+
+To check coverage report:
+
+```sh
+open coverage/lcov-report/index.html
+```
+
 
