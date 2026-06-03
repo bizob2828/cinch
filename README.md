@@ -1,4 +1,6 @@
 # Cinch
+[![CI](https://github.com/bizob2828/cinch/actions/workflows/ci.yml/badge.svg)](https://github.com/bizob2828/cinch/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/bizob2828/cinch/graph/badge.svg?token=3EI7UM2A8Z)](https://codecov.io/gh/bizob2828/cinch)
+
 Bringing the game we wasted many hours playing in college to the web.  
 
 ## Rules
